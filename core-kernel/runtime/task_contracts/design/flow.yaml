@@ -1,0 +1,25 @@
+id: flow
+stage: Design
+kind: flow
+goal: Generate scenario flow design.
+inputs:
+- shiki_context/features/{feature}/modules/{module}/designs/model.md
+- shiki_context/features/{feature}/modules/{module}/designs/persistence.md
+- shiki_context/features/{feature}/modules/{module}/designs/acl.md
+- shiki_context/features/{feature}/modules/{module}/designs/component.md
+- shiki_context/features/{feature}/design_brief.md
+references:
+- core-kernel/workflows/design/flow.md
+artifact:
+  path: features/{feature}/modules/{module}/flows/{scenario}.md
+  mode: create
+  template: core-kernel/templates/module/flows/_flow_template.md
+checks:
+- modules/{module}/designs/model.md exists
+- modules/{module}/designs/persistence.md exists
+- modules/{module}/designs/acl.md exists
+- modules/{module}/designs/component.md exists
+done_condition:
+- flow created with participants matching component
+tech_contracts: ["java/ddd-spring"]
+workflow_ref: core-kernel/workflows/design/flow.md

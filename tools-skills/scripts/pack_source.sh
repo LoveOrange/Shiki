@@ -1,0 +1,227 @@
+#!/bin/bash
+# Package project source files into a transferable zip.
+# By default, src_root is read from shiki.config.yaml.
+# Explicit directories/files can also be passed as targets.
+# Non-Markdown files are renamed with a .md suffix and restored by unpack.md.
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_ROOT=""
+OUTPUT=""
+PACKAGE_NAME="source_pack"
+TARGETS=()
+
+usage() {
+    cat <<'EOF'
+Usage:
+  ./pack_source.sh [target ...] [--output source_pack.zip] [--project-root DIR]
+
+Default:
+  - read src_root from shiki.config.yaml in the project root
+  - fall back to src/main/java when no config is found
+  - write source_pack.zip
+
+Examples:
+  ./pack_source.sh
+  ./pack_source.sh src/main/java src/test/java
+  ./pack_source.sh modules/order --output order_source.zip
+  ./pack_source.sh --project-root /path/to/project
+EOF
+}
+
+abs_path() {
+    local path="$1"
+    if [ -d "$path" ]; then
+        (cd "$path" && pwd -P)
+    else
+        local dir
+        local base
+        dir="$(dirname "$path")"
+        base="$(basename "$path")"
+        (cd "$dir" && printf "%s/%s\n" "$(pwd -P)" "$base")
+    fi
+}
+
+detect_project_root() {
+    if [ -n "$PROJECT_ROOT" ]; then
+        abs_path "$PROJECT_ROOT"
+        return
+    fi
+
+    if [ -f "$PWD/shiki.config.yaml" ] || [ -d "$PWD/shiki_context" ]; then
+        pwd -P
+        return
+    fi
+
+    if [ -f "$SCRIPT_DIR/../shiki.config.yaml" ] || [ -d "$SCRIPT_DIR/../shiki_context" ]; then
+        (cd "$SCRIPT_DIR/.." && pwd -P)
+        return
+    fi
+
+    if [ -f "$SCRIPT_DIR/shiki.config.yaml" ] || [ -d "$SCRIPT_DIR/shiki_context" ]; then
+        printf "%s\n" "$SCRIPT_DIR"
+        return
+    fi
+
+    pwd -P
+}
+
+read_src_root() {
+    local config="$1/shiki.config.yaml"
+    if [ ! -f "$config" ]; then
+        printf "src/main/java\n"
+        return
+    fi
+
+    awk -F: '
+        /^[[:space:]]*src_root[[:space:]]*:/ {
+            value=$2
+            sub(/^[[:space:]]*/, "", value)
+            sub(/[[:space:]]*#.*/, "", value)
+            sub(/[[:space:]]*$/, "", value)
+            gsub(/^"|"$/, "", value)
+            gsub(/^'\''|'\''$/, "", value)
+            if (value != "") print value
+            exit
+        }
+    ' "$config"
+}
+
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        -o|--output)
+            if [ "$#" -lt 2 ]; then
+                echo "ERROR: --output requires a path" >&2
+                exit 1
+            fi
+            OUTPUT="$2"
+            shift 2
+            ;;
+        --project-root)
+            if [ "$#" -lt 2 ]; then
+                echo "ERROR: --project-root requires a directory" >&2
+                exit 1
+            fi
+            PROJECT_ROOT="$2"
+            shift 2
+            ;;
+        --)
+            shift
+            while [ "$#" -gt 0 ]; do
+                TARGETS+=("$1")
+                shift
+            done
+            ;;
+        -*)
+            echo "ERROR: unknown argument: $1" >&2
+            usage
+            exit 1
+            ;;
+        *)
+            TARGETS+=("$1")
+            shift
+            ;;
+    esac
+done
+
+PROJECT_ROOT="$(detect_project_root)"
+
+if [ "${#TARGETS[@]}" -eq 0 ]; then
+    SRC_ROOT="$(read_src_root "$PROJECT_ROOT")"
+    if [ -z "$SRC_ROOT" ]; then
+        SRC_ROOT="src/main/java"
+    fi
+    TARGETS=("$SRC_ROOT")
+fi
+
+if [ -z "$OUTPUT" ]; then
+    OUTPUT="$PROJECT_ROOT/source_pack.zip"
+elif [[ "$OUTPUT" != /* ]]; then
+    OUTPUT="$PROJECT_ROOT/$OUTPUT"
+fi
+
+OUTPUT_DIR="$(dirname "$OUTPUT")"
+TMP_DIR="$PROJECT_ROOT/.tmp_source_pack"
+PACKAGE_DIR="$TMP_DIR/$PACKAGE_NAME"
+
+echo "Packaging source..."
+echo "   Project root: $PROJECT_ROOT"
+echo "   Output:       $OUTPUT"
+
+rm -rf "$TMP_DIR"
+mkdir -p "$PACKAGE_DIR"
+cleanup() { rm -rf "$TMP_DIR"; }
+trap cleanup EXIT
+
+for target in "${TARGETS[@]}"; do
+    if [[ "$target" != /* ]]; then
+        target="$PROJECT_ROOT/$target"
+    fi
+    if [ ! -e "$target" ]; then
+        echo "ERROR: target does not exist: $target" >&2
+        exit 1
+    fi
+
+    abs_target="$(abs_path "$target")"
+    case "$abs_target" in
+        "$PROJECT_ROOT"/*)
+            relpath="${abs_target#$PROJECT_ROOT/}"
+            ;;
+        "$PROJECT_ROOT")
+            relpath="$(basename "$PROJECT_ROOT")"
+            ;;
+        *)
+            relpath="external/$(basename "$abs_target")"
+            ;;
+    esac
+
+    echo "   + $relpath"
+    mkdir -p "$PACKAGE_DIR/$(dirname "$relpath")"
+    cp -R "$abs_target" "$PACKAGE_DIR/$relpath"
+done
+
+# Remove common generated files and dependency caches.
+find "$PACKAGE_DIR" -name ".DS_Store" -delete 2>/dev/null || true
+find "$PACKAGE_DIR" -type d \( \
+    -name ".git" -o \
+    -name "__pycache__" -o \
+    -name "node_modules" -o \
+    -name "target" -o \
+    -name "build" -o \
+    -name "out" \
+\) -prune -exec rm -rf {} + 2>/dev/null || true
+find "$PACKAGE_DIR" -name "*.pyc" -delete 2>/dev/null || true
+
+MAPFILE="$PACKAGE_DIR/_filemap.md"
+{
+    echo "# File Mapping (auto-generated by pack_source.sh)"
+    echo "# Format: renamed_path -> original_path"
+    echo ""
+} > "$MAPFILE"
+
+while IFS= read -r -d '' filepath; do
+    relpath="${filepath#$PACKAGE_DIR/}"
+    case "$relpath" in
+        _filemap.md|unpack.md|*.md)
+            continue
+            ;;
+    esac
+    newpath="${filepath}.md"
+    newrel="${relpath}.md"
+    mv "$filepath" "$newpath"
+    echo "$newrel -> $relpath" >> "$MAPFILE"
+done < <(find "$PACKAGE_DIR" -type f -print0)
+
+cp "$SCRIPT_DIR/unpack.md" "$PACKAGE_DIR/" 2>/dev/null || true
+
+mkdir -p "$OUTPUT_DIR"
+rm -f "$OUTPUT"
+(cd "$TMP_DIR" && zip -rq "$OUTPUT" "$PACKAGE_NAME" -x "*.DS_Store")
+
+echo "Done: $OUTPUT"
+echo "After extracting, run: cd $PACKAGE_NAME && python unpack.md"

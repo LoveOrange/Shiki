@@ -1,0 +1,20 @@
+id: entrance_spec
+stage: Design
+kind: entrance_spec
+goal: Generate external entrance spec.
+inputs:
+- shiki_context/features/{feature}/design_brief.md
+- shiki_context/features/{feature}/modules/{module}/designs/model.md
+references:
+- core-kernel/workflows/design/entrance_spec.md
+artifact:
+  path: features/{feature}/modules/{module}/entrances/{entrance}.md
+  mode: create
+  template: core-kernel/templates/module/entrances/_entrance_spec_template.md
+checks:
+- modules/{module}/designs/model.md exists
+- design_brief section 6 indicates new/changed entrance
+done_condition:
+- entrance spec created with sections 1-6 filled
+tech_contracts: ["java/ddd-spring"]
+workflow_ref: core-kernel/workflows/design/entrance_spec.md

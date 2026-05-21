@@ -1,0 +1,15 @@
+id: adapter
+stage: Code
+kind: adapter
+goal: Implement controller, listener and job adapters from code contract.
+inputs:
+- shiki_context/features/{feature}/code_contract.md
+references:
+- core-kernel/workflows/code/adapter.md
+checks:
+- code contract exists
+- Contract Version is concrete
+done_condition:
+- adapter code generated and registered in _plan.md output_files
+tech_contracts: ["java/ddd-spring"]
+workflow_ref: core-kernel/workflows/code/adapter.md

@@ -1,0 +1,117 @@
+"""Routing helpers shared by Shiki scripts.
+
+This module is intentionally limited to task routing:
+- inspect plan state
+- determine whether an item is done
+- select the next executable item
+- resolve the item's task contract and workflow reference
+
+It does not execute workflow steps. Workflow execution belongs to a dedicated
+workflow-executor layer.
+"""
+
+from dataclasses import dataclass
+
+from .evidence import code_contract_valid
+from .feature_plan import is_bootstrap_plan, parse_plan
+from .task_contracts import load_task_contract
+
+
+@dataclass(frozen=True)
+class TaskRoute:
+    """One routed plan item plus the workflow it should execute."""
+
+    item: dict
+    contract: dict
+    workflow_ref: str
+
+
+def _target_path(feature_dir, target):
+    clean = target.strip().strip("`")
+    if "#" in clean:
+        clean = clean.split("#", 1)[0]
+    if clean in {"", "-", "module baseline", "baseline"}:
+        return None
+    return feature_dir / clean
+
+
+def _has_output_files(item):
+    """Check if a plan item has output_files filled."""
+    output = item.get("output_files", "").strip()
+    return bool(output) and output not in {"", "-"}
+
+
+def item_done(feature_dir, item):
+    """Best-effort completion check for plan items."""
+    kind = item.get("kind", "")
+    target = item.get("target", "")
+    target_path = _target_path(feature_dir, target)
+
+    if kind == "design_init":
+        metadata, items = parse_plan(feature_dir / "_plan.md")
+        base_module = metadata.get("Base Module", "")
+        return base_module not in {"", "-", "[TBD]"} and not is_bootstrap_plan(items)
+
+    if kind == "code_contract":
+        if target_path is None or not target_path.exists():
+            return False
+        valid, _ = code_contract_valid(feature_dir)
+        return valid
+
+    if kind == "feature_merge":
+        return False
+
+    # For Code items, check output_files column
+    if item.get("phase") == "Code":
+        return _has_output_files(item)
+
+    # For Design items, check if target file exists
+    if target_path is None:
+        return False
+    return target_path.exists()
+
+
+def route_next_item(feature_dir):
+    """Return the next executable plan item, task contract and workflow."""
+    plan_path = feature_dir / "_plan.md"
+    _, items = parse_plan(plan_path)
+    completed = {item.get("id") for item in items if item_done(feature_dir, item)}
+
+    for item in items:
+        depends_on = item.get("depends_on", "-").strip()
+        if depends_on not in {"", "-"}:
+            needed = [part.strip() for part in depends_on.split(",") if part.strip()]
+            # Handle range notation like "D1-D6"
+            expanded = []
+            for dep in needed:
+                if "-" in dep and len(dep) > 2:
+                    # Try to expand range like D1-D6
+                    try:
+                        prefix = dep[0]
+                        start = int(dep[1:dep.index("-")])
+                        end = int(dep[dep.index("-") + 1:].lstrip(prefix))
+                        expanded.extend(f"{prefix}{i}" for i in range(start, end + 1))
+                    except (ValueError, IndexError):
+                        expanded.append(dep)
+                else:
+                    expanded.append(dep)
+            if any(dep not in completed for dep in expanded):
+                continue
+        if item_done(feature_dir, item):
+            continue
+        contract = load_task_contract(item["contract"].strip("`"))
+        return TaskRoute(
+            item=item,
+            contract=contract,
+            workflow_ref=contract["workflow_ref"],
+        )
+
+    return None
+
+
+def select_next_item(feature_dir):
+    """Compatibility wrapper returning the next item and its task contract."""
+    route = route_next_item(feature_dir)
+    if route is None:
+        return None, None
+    return route.item, route.contract

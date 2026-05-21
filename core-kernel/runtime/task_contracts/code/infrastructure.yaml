@@ -1,0 +1,15 @@
+id: infrastructure
+stage: Code
+kind: infrastructure
+goal: Implement persistence and ACL infrastructure from code contract.
+inputs:
+- shiki_context/features/{feature}/code_contract.md
+references:
+- core-kernel/workflows/code/infrastructure.md
+checks:
+- code contract exists
+- Contract Version is concrete
+done_condition:
+- infrastructure code generated and registered in _plan.md output_files
+tech_contracts: ["java/ddd-spring"]
+workflow_ref: core-kernel/workflows/code/infrastructure.md

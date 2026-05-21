@@ -1,0 +1,19 @@
+id: persistence
+stage: Design
+kind: persistence
+goal: Generate persistence design from domain model.
+inputs:
+- shiki_context/features/{feature}/modules/{module}/designs/model.md
+- shiki_context/features/{feature}/design_brief.md
+references:
+- core-kernel/workflows/design/persistence.md
+artifact:
+  path: features/{feature}/modules/{module}/designs/persistence.md
+  mode: create
+  template: core-kernel/templates/module/designs/_persistence_template.md
+checks:
+- modules/{module}/designs/model.md exists
+done_condition:
+- modules/{module}/designs/persistence.md created with table prefix and PO suffix correct
+tech_contracts: ["java/ddd-spring"]
+workflow_ref: core-kernel/workflows/design/persistence.md

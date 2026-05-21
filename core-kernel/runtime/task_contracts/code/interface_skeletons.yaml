@@ -1,0 +1,15 @@
+id: interface_skeletons
+stage: Code
+kind: interface_skeletons
+goal: Generate interfaces and DTO skeletons from code contract.
+inputs:
+- shiki_context/features/{feature}/code_contract.md
+references:
+- core-kernel/workflows/code/interface_skeletons.md
+checks:
+- code contract exists
+- Contract Version is concrete
+done_condition:
+- interface and DTO skeletons generated and registered in _plan.md output_files
+tech_contracts: ["java/ddd-spring"]
+workflow_ref: core-kernel/workflows/code/interface_skeletons.md

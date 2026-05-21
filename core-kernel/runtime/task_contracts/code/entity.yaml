@@ -1,0 +1,15 @@
+id: entity
+stage: Code
+kind: entity
+goal: Generate entity, value object, and enum code from code contract.
+inputs:
+- shiki_context/features/{feature}/code_contract.md
+references:
+- core-kernel/workflows/code/entity.md
+checks:
+- code contract exists
+- Contract Version is concrete
+done_condition:
+- entity code generated and registered in _plan.md output_files
+tech_contracts: ["java/ddd-spring"]
+workflow_ref: core-kernel/workflows/code/entity.md

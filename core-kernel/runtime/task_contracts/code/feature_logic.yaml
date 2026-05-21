@@ -1,0 +1,15 @@
+id: feature_logic
+stage: Code
+kind: feature_logic
+goal: Implement app/domain logic declared by code contract.
+inputs:
+- shiki_context/features/{feature}/code_contract.md
+references:
+- core-kernel/workflows/code/feature_logic.md
+checks:
+- code contract exists
+- Contract Version is concrete
+done_condition:
+- feature logic implemented and registered in _plan.md output_files
+tech_contracts: ["java/ddd-spring"]
+workflow_ref: core-kernel/workflows/code/feature_logic.md

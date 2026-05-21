@@ -1,0 +1,5 @@
+# Workspace state is developer-local.
+# Ignore everything created under this workspace directory.
+# Keep only this policy file visible to Git.
+/*
+!/.gitignore

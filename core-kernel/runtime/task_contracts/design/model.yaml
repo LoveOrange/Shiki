@@ -1,0 +1,19 @@
+id: model
+stage: Design
+kind: model
+goal: Generate domain model design from Design Brief.
+inputs:
+- shiki_context/features/{feature}/design_brief.md
+- shiki_context/project/ubiquitous_language.md
+references:
+- core-kernel/workflows/design/model.md
+artifact:
+  path: features/{feature}/modules/{module}/designs/model.md
+  mode: create
+  template: core-kernel/templates/module/designs/_model_template.md
+checks:
+- design_brief exists
+done_condition:
+- modules/{module}/designs/model.md created with sections 1-6 non-empty
+tech_contracts: ["java/ddd-spring"]
+workflow_ref: core-kernel/workflows/design/model.md

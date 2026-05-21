@@ -1,0 +1,20 @@
+# Shiki configuration file.
+# Copy this file to the consumer project root, next to shiki/ and shiki_context/.
+
+# Java source root, relative to the project root.
+src_root: src/main/java
+
+# Java base package used to infer modules from fully qualified class names.
+# Example: com.example.shop.adapter.order.web.OrderController -> module=order
+# If the first segment after base_package is a DDD layer, the next segment is used.
+base_package: com.example.shop
+
+# Shiki framework directory name, relative to the project root.
+shiki_dir: shiki
+
+# Spec output directory name, relative to the project root.
+context_dir: shiki_context
+
+# Tech contract stack ids under tech-stacks/tech-contracts/.
+tech_stacks:
+  - java/ddd-spring

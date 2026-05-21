@@ -1,0 +1,16 @@
+id: feature_merge
+stage: Merge
+kind: feature_merge
+goal: Merge feature artifacts into baseline module.
+inputs:
+- shiki_context/features/{feature}/_plan.md
+- shiki_context/features/{feature}/code_contract.md
+references:
+- core-kernel/workflows/merge/feature_merge.md
+checks:
+- all plan items have output_files
+- Contract Version consistent
+done_condition:
+- overlay specs merged into baseline
+- index.md updated
+workflow_ref: core-kernel/workflows/merge/feature_merge.md

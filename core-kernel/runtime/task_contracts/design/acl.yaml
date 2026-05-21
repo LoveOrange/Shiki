@@ -1,0 +1,19 @@
+id: acl
+stage: Design
+kind: acl
+goal: Generate ACL design from domain model.
+inputs:
+- shiki_context/features/{feature}/modules/{module}/designs/model.md
+- shiki_context/features/{feature}/design_brief.md
+references:
+- core-kernel/workflows/design/acl.md
+artifact:
+  path: features/{feature}/modules/{module}/designs/acl.md
+  mode: create
+  template: core-kernel/templates/module/designs/_acl_template.md
+checks:
+- modules/{module}/designs/model.md exists
+done_condition:
+- modules/{module}/designs/acl.md created with Support signatures clean
+tech_contracts: ["java/ddd-spring"]
+workflow_ref: core-kernel/workflows/design/acl.md

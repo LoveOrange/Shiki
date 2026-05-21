@@ -1,0 +1,22 @@
+id: component
+stage: Design
+kind: component
+goal: Generate component design from model, persistence and ACL.
+inputs:
+- shiki_context/features/{feature}/modules/{module}/designs/model.md
+- shiki_context/features/{feature}/modules/{module}/designs/persistence.md
+- shiki_context/features/{feature}/modules/{module}/designs/acl.md
+references:
+- core-kernel/workflows/design/component.md
+artifact:
+  path: features/{feature}/modules/{module}/designs/component.md
+  mode: create
+  template: core-kernel/templates/module/designs/_component_template.md
+checks:
+- modules/{module}/designs/model.md exists
+- modules/{module}/designs/persistence.md exists
+- modules/{module}/designs/acl.md exists
+done_condition:
+- modules/{module}/designs/component.md created with 4-layer complete
+tech_contracts: ["java/ddd-spring"]
+workflow_ref: core-kernel/workflows/design/component.md
