@@ -24,4 +24,4 @@
 - Do not execute multiple items in one run.
 - Do not skip `code_contract.md` or other gate artifacts.
 - Do not make the runner perform workflow execution itself.
-- Do not load the full CHEATSHEET, full module tree, or full source tree by default.
+- Do not load the full prompt docs, full module tree, or full source tree by default.

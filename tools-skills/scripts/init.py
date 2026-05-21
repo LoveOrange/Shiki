@@ -196,7 +196,7 @@ def print_report(target_dir, created, skipped, config_created, config_path, tech
     print("")
     print("  Next steps:")
     print("    1. Edit shiki.config.yaml in the project root and set base_package.")
-    print("    2. Use CHEATSHEET.md prompts with your AI coding agent.")
+    print("    2. Use docs/CHEATSHEET.md prompts with your AI coding agent.")
     print("")
     print("  Note: keep files under shiki/ read-only in consumer projects.")
     print("        Project-owned configuration lives in shiki.config.yaml and shiki_context/.")

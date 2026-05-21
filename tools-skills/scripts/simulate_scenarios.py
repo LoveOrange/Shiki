@@ -43,8 +43,8 @@ def test_happy_path() -> None:
     for name in ["_plan.md", "design_brief.md", "code_contract.md", "index.md"]:
         check((template_dir / name).exists(), f"feature template exists: {name}")
 
-    cheatsheet = SHIKI_ROOT / "CHEATSHEET.md"
-    check(cheatsheet.exists(), "CHEATSHEET.md exists")
+    cheatsheet = SHIKI_ROOT / "docs" / "CHEATSHEET.md"
+    check(cheatsheet.exists(), "docs/CHEATSHEET.md exists")
     if cheatsheet.exists():
         content = cheatsheet.read_text(encoding="utf-8")
         for heading in [
@@ -55,7 +55,7 @@ def test_happy_path() -> None:
             "## 5. review",
             "## 6. modify",
         ]:
-            check(heading in content, f"CHEATSHEET contains {heading}")
+            check(heading in content, f"docs/CHEATSHEET.md contains {heading}")
 
     expected = {
         "design": [

@@ -23,5 +23,5 @@ plan, contract, index, or evidence state is missing.
 - README files are human entry points and are not normal task facts.
 - Index files route to leaf specs; they do not carry task state or full design content.
 - Cross-module callers load the callee entrance and model by default; load flow only when side effects matter.
-- Do not load persistence, ACL, component, full CHEATSHEET, full module directories, or full source trees by default.
+- Do not load persistence, ACL, component, full prompt docs, full module directories, or full source trees by default.
 - When blocked, return `BLOCKED` with the missing file or decision instead of loading more context speculatively.

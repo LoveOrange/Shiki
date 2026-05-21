@@ -1,8 +1,8 @@
 # Java DDD Spring Sample
 
 This is the smallest local verification fixture for Shiki. It validates init,
-path conventions, entry discovery, module inference, and pack/unpack behavior.
-It is not part of Shiki distribution output.
+path conventions, entry discovery, and module inference. It is not part of the
+runtime context created in consumer projects.
 
 ## Shape
 

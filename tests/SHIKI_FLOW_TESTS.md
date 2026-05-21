@@ -71,5 +71,5 @@ And module index paths remain valid.
 
 Given the public Shiki repository
 When maintenance verification runs
-Then generated packages exclude `shiki_context/`, local fixtures, caches, and verification-only scripts
+Then the public source excludes local context, caches, and internal transfer scripts
 And no non-English source text, legacy brand references, or company-specific package names remain.

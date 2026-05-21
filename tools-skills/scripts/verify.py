@@ -14,13 +14,12 @@ import subprocess
 import sys
 import tempfile
 import textwrap
-import zipfile
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "core-kernel"))
-CORE_COPY_DIRS = ["core-kernel", "tools-skills", "tech-stacks", "providers", "user-interface"]
+CORE_COPY_DIRS = ["docs", "core-kernel", "tools-skills", "tech-stacks", "providers", "user-interface"]
 EXPECTED_CONTEXT_DIRS = [
     "shiki_context/workspace",
     "shiki_context/constitution",
@@ -122,12 +121,6 @@ def verify_python_and_shell() -> None:
     log("checking Python scripts")
     run([sys.executable, "-m", "py_compile", *python_scripts()])
 
-    log("checking pack.sh syntax")
-    run(["bash", "-n", "pack.sh"])
-
-    if shutil.which("zip") is None:
-        raise AssertionError("zip command not found")
-
 
 def should_scan_text(path: Path) -> bool:
     if any(part in TEXT_SKIP_DIRS for part in path.parts):
@@ -162,7 +155,7 @@ def verify_static_text() -> None:
 
 def verify_core_consistency() -> None:
     log("checking core file consistency")
-    cheatsheet = (ROOT / "CHEATSHEET.md").read_text(encoding="utf-8")
+    cheatsheet = (ROOT / "docs" / "CHEATSHEET.md").read_text(encoding="utf-8")
     phase_contract = (ROOT / "core-kernel/runtime/phase_contract.md").read_text(encoding="utf-8")
     context_loading = (ROOT / "core-kernel/runtime/context_loading.md").read_text(encoding="utf-8")
     runner_apply = (ROOT / "core-kernel" / "workflows" / "runner" / "apply.md").read_text(encoding="utf-8")
@@ -234,9 +227,6 @@ def copy_shiki_to(project: Path) -> None:
     for name in [
         "shiki.config.yaml",
         "README.md",
-        "CHEATSHEET.md",
-        "pack.sh",
-        "unpack.md",
     ]:
         src = ROOT / name
         if src.exists():
@@ -498,38 +488,6 @@ def verify_publish_docs() -> None:
             raise AssertionError("publisher must rewrite local .md links to .html links")
 
 
-def verify_pack_unpack() -> None:
-    log("checking pack/unpack")
-    run(["bash", "pack.sh"])
-
-    archive = ROOT / "shiki.zip"
-    require_file(archive)
-    with zipfile.ZipFile(archive) as zf:
-        names = set(zf.namelist())
-        if any(name.startswith("shiki/tests/fixtures/") for name in names):
-            raise AssertionError("tests/fixtures/ must not be included in shiki.zip")
-        if any(name.startswith("shiki/shiki_context/") for name in names):
-            raise AssertionError("shiki_context/ must not be included in shiki.zip")
-        if any(name.startswith("shiki/project/") for name in names):
-            raise AssertionError("project/ must not be included in shiki.zip")
-        if "shiki/CLAUDE.md" in names:
-            raise AssertionError("CLAUDE.md must not be included in shiki.zip")
-        if "shiki/tools-skills/scripts/verify.py.md" in names or "shiki/tools-skills/scripts/verify.py" in names:
-            raise AssertionError("tools-skills/scripts/verify.py must not be included in shiki.zip")
-        if "shiki/tools-skills/skills/spec-to-html/SKILL.md" not in names:
-            raise AssertionError("spec-to-html skill must be included in shiki.zip")
-        if "shiki/tools-skills/skills/spec-to-html/README.md" not in names:
-            raise AssertionError("spec-to-html README must be included in shiki.zip")
-        if "shiki/tools-skills/skills/spec-to-html/scripts/publish_docs.py.md" not in names:
-            raise AssertionError("spec-to-html publisher script must be included in shiki.zip")
-        for asset_name in ["highlight.min.js", "highlight-theme.css", "mermaid.min.js"]:
-            packed_name = f"shiki/tools-skills/skills/spec-to-html/assets/{asset_name}.md"
-            if packed_name not in names:
-                raise AssertionError(f"spec-to-html asset missing from shiki.zip: {packed_name}")
-        if any("__pycache__" in name or name.endswith(".pyc.md") for name in names):
-            raise AssertionError("__pycache__ and pyc files must not be included in shiki.zip")
-
-
 def verify_git_diff_check() -> None:
     if shutil.which("git") is None:
         return
@@ -553,7 +511,6 @@ def main() -> int:
         verify_core_consistency()
         verify_fixture_workflow()
         verify_publish_docs()
-        verify_pack_unpack()
         verify_git_diff_check()
     except Exception as exc:
         print(f"[verify] FAIL: {exc}", file=sys.stderr)

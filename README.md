@@ -59,8 +59,8 @@ Create a feature workspace:
 python shiki/tools-skills/scripts/new_feature.py --taskid FEAT-001
 ```
 
-Then use `CHEATSHEET.md` prompts with your AI coding agent: `scan`, `new feature`,
-`status`, `apply`, `review`, and `modify`.
+Then use prompts from `docs/CHEATSHEET.md` with your AI coding agent: `scan`,
+`new feature`, `status`, `apply`, `review`, and `modify`.
 
 ## Tech Stack Naming
 
@@ -85,6 +85,7 @@ Users should change those copies instead of editing the read-only framework defa
 ## Repository Shape
 
 ```text
+docs/                blueprint and prompt cheatsheet
 user-interface/       user entry surfaces
 core-kernel/          runtime rules, task contracts, workflows, templates, helpers
 tools-skills/         scripts and reusable skills
@@ -101,4 +102,4 @@ python3 tools-skills/scripts/verify.py
 
 The verification script compiles Python helpers, checks references, creates a
 sample project, runs init and scan flows with a deterministic `devagent` shim,
-and validates package/unpack behavior.
+and validates docs publishing behavior.
