@@ -62,6 +62,12 @@ python shiki/tools-skills/scripts/new_feature.py --taskid FEAT-001
 Then use prompts from `docs/CHEATSHEET.md` with your AI coding agent: `scan`,
 `new feature`, `status`, `apply`, `review`, and `modify`.
 
+Publish a human-friendly L0 review site from Shiki L1 specs:
+
+```bash
+python shiki/tools-skills/skills/pretty-shiki-spec/scripts/publish_pretty_spec.py shiki_context --title "Shiki Spec" --fail-on-broken-links
+```
+
 ## Tech Stack Naming
 
 Tech stack ids are hierarchical. The default Java reference stack is:

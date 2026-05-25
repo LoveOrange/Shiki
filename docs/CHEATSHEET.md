@@ -140,3 +140,17 @@ Publish Markdown specs as an offline HTML site.
 ```bash
 python shiki/tools-skills/skills/spec-to-html/scripts/publish_docs.py <input-path> --title "Shiki Spec" --fail-on-broken-links
 ```
+
+## 9. publish pretty Shiki spec
+
+Generate an L0 human-friendly spec site from Shiki L1 consensus specs.
+
+```bash
+python shiki/tools-skills/skills/pretty-shiki-spec/scripts/publish_pretty_spec.py shiki_context --title "Shiki Spec" --fail-on-broken-links
+```
+
+For one feature:
+
+```bash
+python shiki/tools-skills/skills/pretty-shiki-spec/scripts/publish_pretty_spec.py shiki_context --feature <TASKID> --title "<TASKID> Spec" --fail-on-broken-links
+```

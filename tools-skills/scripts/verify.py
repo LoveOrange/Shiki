@@ -488,6 +488,226 @@ def verify_publish_docs() -> None:
             raise AssertionError("publisher must rewrite local .md links to .html links")
 
 
+def verify_pretty_shiki_spec() -> None:
+    log("checking Pretty Shiki spec publisher")
+    with tempfile.TemporaryDirectory() as raw_tmp:
+        tmp = Path(raw_tmp)
+        project = tmp / "project"
+        ctx = project / "shiki_context"
+        feature = ctx / "features" / "FEAT-PRETTY"
+        module_designs = feature / "modules" / "order" / "designs"
+        tests_dir = feature / "tests"
+        baseline_module = ctx / "modules" / "order"
+        for path in [
+            ctx / "project",
+            ctx / "workspace",
+            module_designs,
+            tests_dir,
+            baseline_module,
+        ]:
+            path.mkdir(parents=True, exist_ok=True)
+        (ctx / "project" / "index.md").write_text("# Project Index\n", encoding="utf-8")
+        (ctx / "project" / "architecture.md").write_text(
+            "# Architecture\n\n## Overview\n\nOrder service baseline.\n",
+            encoding="utf-8",
+        )
+        (ctx / "workspace" / "active_task.md").write_text("# Active Task\n", encoding="utf-8")
+        (baseline_module / "index.md").write_text(
+            textwrap.dedent(
+                """\
+                # Module Index: order
+
+                ## Business Boundary
+
+                - **Core Responsibility**: order lifecycle
+                - **Domain Entities**: Order
+                - **Out of Scope**: payment
+                """
+            ),
+            encoding="utf-8",
+        )
+        (feature / "design_brief.md").write_text(
+            textwrap.dedent(
+                """\
+                # Design Brief: Pretty Spec
+
+                **Module**: order  **Date**: 2026-05-25  **Author**: tester
+                **Source**: verification
+
+                ## 1. Summary
+
+                Create a readable spec for order review.
+
+                ## 2. Core Concepts
+
+                - Order
+
+                ## 3. State Changes
+
+                - Order: INIT -> REVIEWED
+
+                ## 4. Operations
+
+                - Review order
+
+                ## 5. Business Rules
+
+                - Only submitted orders can be reviewed.
+
+                ## 6. External Entrances and Capacity
+
+                - N/A - no exposed entry changes.
+
+                ## 7. Boundaries and Dependencies
+
+                Internal dependencies:
+
+                - N/A
+
+                External dependencies:
+
+                - N/A
+
+                ## 8. Concerns and Questions
+
+                - N/A
+
+                ## 9. References
+
+                - N/A
+                """
+            ),
+            encoding="utf-8",
+        )
+        (feature / "_plan.md").write_text(
+            textwrap.dedent(
+                """\
+                # Feature Plan: FEAT-PRETTY
+
+                ## Meta
+
+                - **Feature ID**: FEAT-PRETTY
+                - **Base Module**: order
+                - **Contract Version**: v1
+                - **Created**: 2026-05-25
+
+                ## Target Artifacts
+
+                | id | phase | kind | target | depends_on | contract | output_files |
+                | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+                | D1 | Design | model | `modules/order/designs/model.md` | - | `core-kernel/runtime/task_contracts/design/model.yaml` | `modules/order/designs/model.md` |
+                | CP | Design | code_contract | `code_contract.md` | D1 | `core-kernel/runtime/task_contracts/design/code_contract.yaml` | |
+                """
+            ),
+            encoding="utf-8",
+        )
+        (feature / "index.md").write_text(
+            textwrap.dedent(
+                """\
+                # Feature Spec Index: FEAT-PRETTY
+
+                ## Generated Spec Artifacts
+
+                | kind | id | path | source item |
+                | :--- | :--- | :--- | :--- |
+                | `model` | `modules.order.designs.model` | `modules/order/designs/model.md` | D1 |
+                """
+            ),
+            encoding="utf-8",
+        )
+        (module_designs / "model.md").write_text(
+            textwrap.dedent(
+                """\
+                # order - Domain Model
+
+                ## 1. Ubiquitous Language
+
+                | code term | business term | definition | source |
+                | :--- | :--- | :--- | :--- |
+                | `Order` | Order | customer order | brief |
+
+                ## 2. Entities
+
+                | entity | field | type | constraint | invariant |
+                | :--- | :--- | :--- | :--- | :--- |
+                | `Order` | `id` | `Long` | required | immutable identity |
+
+                ## 4. State Transitions
+
+                | object | source state | trigger | target state | rule |
+                | :--- | :--- | :--- | :--- | :--- |
+                | `Order` | `INIT` | `review()` | `REVIEWED` | submitted only |
+                """
+            ),
+            encoding="utf-8",
+        )
+        (feature / "code_contract.md").write_text(
+            textwrap.dedent(
+                """\
+                # Code Contract: FEAT-PRETTY
+
+                ## 0. Metadata
+
+                - **Feature ID**: FEAT-PRETTY
+                - **Contract Version**: v1
+
+                ## 1. Entities
+
+                | type | name | field | field type | constraint | invariant | confirmed |
+                | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+                | Entity | `Order` | `id` | `Long` | required | immutable | [ ] |
+                """
+            ),
+            encoding="utf-8",
+        )
+        (tests_dir / "test_cases.md").write_text("# Test Cases: FEAT-PRETTY\n", encoding="utf-8")
+
+        site_root = tmp / "site"
+        run(
+            [
+                sys.executable,
+                "tools-skills/scripts/pretty_shiki_spec.py",
+                str(ctx),
+                "--output",
+                str(site_root),
+                "--title",
+                "Pretty Test",
+                "--feature",
+                "FEAT-PRETTY",
+                "--fail-on-broken-links",
+            ]
+        )
+        site = site_root / "pretty_shiki_spec"
+        require_file(site / "index.html")
+        require_file(site / "README.html")
+        require_file(site / "features" / "FEAT-PRETTY" / "overview.html")
+        require_file(site / "features" / "FEAT-PRETTY" / "design.html")
+        require_file(site / "features" / "FEAT-PRETTY" / "contract.html")
+        require_file(site / "gaps.html")
+        require_file(site / "assets" / "site.css")
+        require_file(site / "assets" / "site.js")
+        readme_html = (site / "README.html").read_text(encoding="utf-8")
+        overview_html = (site / "features" / "FEAT-PRETTY" / "overview.html").read_text(encoding="utf-8")
+        contract_html = (site / "features" / "FEAT-PRETTY" / "contract.html").read_text(encoding="utf-8")
+        gaps_html = (site / "gaps.html").read_text(encoding="utf-8")
+        css = (site / "assets" / "site.css").read_text(encoding="utf-8")
+        for needle in [
+            "L0 Human-Friendly Spec",
+            "Agreement Snapshot",
+            "Spec Layers",
+            "L1 Consensus Sources",
+            'href="features/FEAT-PRETTY/overview.html"',
+            "Delivery Plan",
+            "D1",
+            "Code Contract View",
+            "Open Placeholders",
+            "[ ]",
+            "--nav:",
+        ]:
+            if needle not in readme_html + overview_html + contract_html + gaps_html + css:
+                raise AssertionError(f"pretty Shiki spec missing expected content: {needle}")
+
+
 def verify_git_diff_check() -> None:
     if shutil.which("git") is None:
         return
@@ -511,6 +731,7 @@ def main() -> int:
         verify_core_consistency()
         verify_fixture_workflow()
         verify_publish_docs()
+        verify_pretty_shiki_spec()
         verify_git_diff_check()
     except Exception as exc:
         print(f"[verify] FAIL: {exc}", file=sys.stderr)
