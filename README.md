@@ -75,6 +75,7 @@ Add new stacks under `tech-stacks/tech-contracts/<language>/<style>/`, for examp
 
 ```text
 tech-stacks/tech-contracts/typescript/nextjs/
+tech-stacks/tech-contracts/python/default/
 tech-stacks/tech-contracts/python/fastapi/
 tech-stacks/tech-contracts/go/clean-architecture/
 ```
