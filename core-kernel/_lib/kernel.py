@@ -17,6 +17,10 @@ from .feature_plan import is_bootstrap_plan, parse_plan
 from .task_contracts import load_task_contract
 
 
+class InvalidPlanTarget(ValueError):
+    """Raised when a feature plan target escapes the feature scope."""
+
+
 @dataclass(frozen=True)
 class TaskRoute:
     """One routed plan item plus the workflow it should execute."""
@@ -32,33 +36,57 @@ def _target_path(feature_dir, target):
         clean = clean.split("#", 1)[0]
     if clean in {"", "-", "module baseline", "baseline"}:
         return None
+    if clean.startswith("/") or clean.startswith("../") or "/../" in clean:
+        raise InvalidPlanTarget(f"feature plan target must be relative: {clean}")
+    if clean.startswith(("shiki_context/modules/", "shiki_context/project/")):
+        raise InvalidPlanTarget(f"feature plan target points to baseline: {clean}")
+    if clean.startswith("shiki_context/features/"):
+        raise InvalidPlanTarget(f"feature plan target must be feature-root relative: {clean}")
     return feature_dir / clean
 
 
 def _has_output_files(item):
     """Check if a plan item has output_files filled."""
     output = item.get("output_files", "").strip()
-    return bool(output) and output not in {"", "-"}
+    if not output or output == "-":
+        return False
+    return not output.upper().startswith("STALE")
+
+
+def _output_stale(item):
+    """Return True when output_files explicitly marks the item stale."""
+    return item.get("output_files", "").strip().upper().startswith("STALE")
+
+
+def _contract_ref(item):
+    """Return the plan row contract reference without Markdown quoting."""
+    return item.get("contract", "").strip().strip("`")
+
+
+def _contract_matches(item, suffix):
+    return _contract_ref(item).endswith(suffix)
 
 
 def item_done(feature_dir, item):
     """Best-effort completion check for plan items."""
-    kind = item.get("kind", "")
+    if _output_stale(item):
+        return False
+
     target = item.get("target", "")
     target_path = _target_path(feature_dir, target)
 
-    if kind == "design_init":
+    if _contract_matches(item, "design/design_init.yaml"):
         metadata, items = parse_plan(feature_dir / "_plan.md")
         base_module = metadata.get("Base Module", "")
         return base_module not in {"", "-", "[TBD]"} and not is_bootstrap_plan(items)
 
-    if kind == "code_contract":
+    if _contract_matches(item, "design/code_contract.yaml"):
         if target_path is None or not target_path.exists():
             return False
         valid, _ = code_contract_valid(feature_dir)
         return valid
 
-    if kind == "feature_merge":
+    if _contract_matches(item, "merge/feature_merge.yaml"):
         return False
 
     # For Code items, check output_files column

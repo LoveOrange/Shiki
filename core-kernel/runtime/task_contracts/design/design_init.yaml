@@ -1,6 +1,5 @@
 id: design_init
 stage: Design
-kind: design_init
 goal: Analyze Design Brief, expand bootstrap plan, and align feature/module indexes.
 inputs:
 - shiki_context/features/{feature}/design_brief.md
@@ -8,14 +7,15 @@ inputs:
 - shiki_context/features/{feature}/index.md
 references:
 - core-kernel/workflows/design/design_init.md
-artifact:
+output:
   path: features/{feature}/_plan.md
   mode: update
   template: core-kernel/templates/feature/_plan.md
 checks:
 - design_brief exists
 done_condition:
-- feature _plan.md expanded with full Target Artifacts table
-- feature index.md matches generated artifact targets
-- module index.md updated when baseline artifacts are affected
+- feature _plan.md expanded with full Target Outputs table
+- feature index.md matches generated spec targets
+- generated spec targets are feature-root relative and do not point to shiki_context/modules/**
+- feature index.md tells Design leaf specs to fill §0 Baseline Delta
 workflow_ref: core-kernel/workflows/design/design_init.md

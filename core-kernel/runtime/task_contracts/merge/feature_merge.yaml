@@ -1,16 +1,24 @@
 id: feature_merge
 stage: Merge
-kind: feature_merge
-goal: Merge feature artifacts into baseline module.
+goal: Merge feature specs into baseline module.
 inputs:
 - shiki_context/features/{feature}/_plan.md
-- shiki_context/features/{feature}/code_contract.md
+- shiki_context/features/{feature}/index.md
+- shiki_context/features/{feature}/modules/{module}/
+- shiki_context/features/{feature}/tests/test_cases.md
 references:
 - core-kernel/workflows/merge/feature_merge.md
+output:
+  path: baseline module specs
+  mode: update
+  template: ""
 checks:
 - all plan items have output_files
-- Contract Version consistent
+- no output_files entry is marked STALE
+- spec-code alignment or drift evidence completed
+- every overlay spec has §0 Baseline Delta with reuse/add/extend/modify/deprecate only
 done_condition:
 - overlay specs merged into baseline
 - index.md updated
+- merge actions trace back to overlay Baseline Delta
 workflow_ref: core-kernel/workflows/merge/feature_merge.md

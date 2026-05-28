@@ -1,14 +1,21 @@
 id: feature_logic
 stage: Code
-kind: feature_logic
-goal: Implement app/domain logic declared by code contract.
+goal: Implement app/domain logic declared by current L2 AS-IS specs.
 inputs:
-- shiki_context/features/{feature}/code_contract.md
+- shiki_context/features/{feature}/_plan.md
+- shiki_context/features/{feature}/modules/{module}/designs/model.md
+- shiki_context/features/{feature}/modules/{module}/designs/component.md
+- shiki_context/features/{feature}/modules/{module}/designs/acl.md (optional)
+- shiki_context/features/{feature}/modules/{module}/flows/*.md
 references:
 - core-kernel/workflows/code/feature_logic.md
+output:
+  path: plan output_files
+  mode: update
+  template: ""
 checks:
-- code contract exists
-- Contract Version is concrete
+- required L2 specs exist
+- spec-code alignment check completed before editing
 done_condition:
 - feature logic implemented and registered in _plan.md output_files
 tech_contracts: ["java/ddd-spring"]

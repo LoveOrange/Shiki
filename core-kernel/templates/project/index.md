@@ -1,6 +1,6 @@
 # Project Spec Index
 
-Agent/runtime routing entry. It records stable project artifacts and load paths
+Agent/runtime routing entry. It records stable project spec files and load paths
 only; do not put design body text here.
 
 ## Scope Files
@@ -9,16 +9,16 @@ only; do not put design body text here.
 | :--- | :--- |
 | `README.md` | human entry point |
 | `index.md` | context routing |
-| `_plan.md` | project task ledger |
+| `_plan.md` | project task and output ledger |
 
-## Project Spec Artifacts
+## Project Spec Files
 
-| kind | id | path | load when |
-| :--- | :--- | :--- | :--- |
-| `architecture` | `project_architecture` | `architecture.md` | project scan, module location, cross-module design |
-| `ubiquitous_language` | `project_ubiquitous` | `ubiquitous_language.md` | concept extraction, model design, state naming |
-| `techstack` | `project_techstack` | `techstack.md` | implementation and tech-rule checks |
-| `integration` | `project_integration` | `integration.md` | external dependencies and infrastructure design |
+| id | path | load when |
+| :--- | :--- | :--- |
+| `project_architecture` | `architecture.md` | project scan, module location, cross-module design |
+| `project_ubiquitous` | `ubiquitous_language.md` | concept extraction, model design, state naming |
+| `project_techstack` | `techstack.md` | implementation and tech-rule checks |
+| `project_integration` | `integration.md` | external dependencies and infrastructure design |
 
 ## Module Registry
 

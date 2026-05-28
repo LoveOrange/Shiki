@@ -158,7 +158,9 @@ def verify_core_consistency() -> None:
     cheatsheet = (ROOT / "docs" / "CHEATSHEET.md").read_text(encoding="utf-8")
     phase_contract = (ROOT / "core-kernel/runtime/phase_contract.md").read_text(encoding="utf-8")
     context_loading = (ROOT / "core-kernel/runtime/context_loading.md").read_text(encoding="utf-8")
+    runner_next = (ROOT / "core-kernel" / "workflows" / "runner" / "next.md").read_text(encoding="utf-8")
     runner_apply = (ROOT / "core-kernel" / "workflows" / "runner" / "apply.md").read_text(encoding="utf-8")
+    feature_plan_template = (ROOT / "core-kernel" / "templates" / "feature" / "_plan.md").read_text(encoding="utf-8")
     require_workspace_ignore_policy(ROOT / "core-kernel" / "templates" / "workspace" / ".gitignore")
 
     # Check CHEATSHEET has the active prompt entries
@@ -166,15 +168,18 @@ def verify_core_consistency() -> None:
         "## 1. scan",
         "## 2. new feature",
         "## 3. status",
-        "## 4. apply",
+        "## 4. next",
+        "## 4a. apply",
         "## 5. review",
         "## 6. modify",
+        "## 7. doctor",
+        "## 8. sync",
     ]:
         if heading not in cheatsheet:
             raise AssertionError(f"CHEATSHEET.md missing entry: {heading}")
 
     # No legacy headings
-    for stale in ["verify last", "status check", "run next", "## 4. next"]:
+    for stale in ["verify last", "status check", "run next"]:
         if stale in cheatsheet:
             raise AssertionError(f"CHEATSHEET.md still contains legacy heading: {stale}")
 
@@ -192,7 +197,12 @@ def verify_core_consistency() -> None:
     for contract_path in sorted((ROOT / "core-kernel" / "runtime" / "task_contracts").rglob("*.yaml")):
         from _lib.task_contracts import _load_yaml
         data = _load_yaml(contract_path.read_text(encoding="utf-8"))
-        required = ["id", "stage", "kind", "goal", "workflow_ref"]
+        required = ["id", "stage", "goal", "output", "workflow_ref"]
+        legacy_output_key = "arti" + "fact"
+        if legacy_output_key in data:
+            raise AssertionError(f"{contract_path.relative_to(ROOT)} uses legacy output field")
+        if "kind" in data:
+            raise AssertionError(f"{contract_path.relative_to(ROOT)} uses legacy kind field")
         missing = [field for field in required if field not in data]
         if missing:
             raise AssertionError(f"{contract_path.relative_to(ROOT)} missing fields: {', '.join(missing)}")
@@ -213,8 +223,47 @@ def verify_core_consistency() -> None:
 
     # Check runtime guidance
     for needle in ["task contract", "core-kernel/runtime/task_contracts/"]:
-        if needle not in context_loading + runner_apply:
+        if needle not in context_loading + runner_next + runner_apply:
             raise AssertionError(f"Missing task-contract runtime guidance: {needle}")
+    for needle in ["feature-root relative", "not baseline"]:
+        if needle not in context_loading + runner_next + feature_plan_template:
+            raise AssertionError(f"Missing feature-relative target guidance: {needle}")
+    if "top-level prompt" not in context_loading:
+        raise AssertionError("Missing user-facing top-level prompt guidance")
+
+    # Feature overlay specs must carry explicit baseline delta metadata for merge.
+    delta_types = ["reuse", "add", "extend", "modify", "deprecate"]
+    delta_templates = [
+        ROOT / "core-kernel" / "templates" / "module" / "designs" / "_model_template.md",
+        ROOT / "core-kernel" / "templates" / "module" / "designs" / "_persistence_template.md",
+        ROOT / "core-kernel" / "templates" / "module" / "designs" / "_acl_template.md",
+        ROOT / "core-kernel" / "templates" / "module" / "designs" / "_component_template.md",
+        ROOT / "core-kernel" / "templates" / "module" / "entrances" / "_entrance_spec_template.md",
+        ROOT / "core-kernel" / "templates" / "module" / "flows" / "_flow_template.md",
+    ]
+    for template_path in delta_templates:
+        content = template_path.read_text(encoding="utf-8")
+        for needle in ["Baseline Delta", "change_type", "baseline_ref", "overlay_ref", "merge_action", *delta_types]:
+            if needle not in content:
+                raise AssertionError(f"{template_path.relative_to(ROOT)} missing baseline delta marker: {needle}")
+
+    delta_workflows = [
+        ROOT / "core-kernel" / "workflows" / "design" / "model.md",
+        ROOT / "core-kernel" / "workflows" / "design" / "persistence.md",
+        ROOT / "core-kernel" / "workflows" / "design" / "acl.md",
+        ROOT / "core-kernel" / "workflows" / "design" / "component.md",
+        ROOT / "core-kernel" / "workflows" / "design" / "entrance_spec.md",
+        ROOT / "core-kernel" / "workflows" / "design" / "flow.md",
+    ]
+    for workflow_path in delta_workflows:
+        content = workflow_path.read_text(encoding="utf-8")
+        for needle in ["Baseline Delta", *delta_types, "MANUAL_DECISION"]:
+            if needle not in content:
+                raise AssertionError(f"{workflow_path.relative_to(ROOT)} missing baseline delta guidance: {needle}")
+    merge_workflow = (ROOT / "core-kernel" / "workflows" / "merge" / "feature_merge.md").read_text(encoding="utf-8")
+    for needle in ["Baseline Delta", "change_type", *delta_types]:
+        if needle not in merge_workflow:
+            raise AssertionError(f"feature_merge.md missing baseline delta merge rule: {needle}")
 
 
 def copy_shiki_to(project: Path) -> None:
@@ -329,6 +378,8 @@ def verify_fixture_workflow() -> None:
         feature_template_root = ROOT / "core-kernel" / "templates" / "feature"
         for template_path in sorted(feature_template_root.rglob("*")):
             if template_path.is_file():
+                if template_path.relative_to(feature_template_root).as_posix() == "code_contract.md":
+                    continue
                 require_file(feature_dir / template_path.relative_to(feature_template_root))
 
         # Verify NO legacy files created
@@ -353,7 +404,7 @@ def verify_fixture_workflow() -> None:
         )
 
         plan_text = (feature_dir / "_plan.md").read_text(encoding="utf-8")
-        if "| B1 | Design | design_init |" not in plan_text:
+        if "| B1 | Design | `_plan.md` | - | `core-kernel/runtime/task_contracts/design/design_init.yaml` |" not in plan_text:
             raise AssertionError("new_feature.py must create a bootstrap plan with design_init")
 
         # Kernel routing: bootstrap should drive design_init
@@ -396,12 +447,18 @@ def verify_fixture_workflow() -> None:
             check=True,
         )
         plan_text = (feature_dir / "_plan.md").read_text(encoding="utf-8")
-        for needle in ["| D1 | Design | model |", "| CP | Design | code_contract |", "| M1 | Merge | feature_merge |"]:
+        for needle in [
+            "| D1 | Design | `modules/order/designs/model.md` | - | `core-kernel/runtime/task_contracts/design/model.yaml` |",
+            "| C1 | Code | - | D1,D6 | `core-kernel/runtime/task_contracts/code/entity.yaml` |",
+            "| M1 | Merge | baseline | C5 | `core-kernel/runtime/task_contracts/merge/feature_merge.yaml` |",
+        ]:
             if needle not in plan_text:
                 raise AssertionError(f"expanded plan missing row: {needle}")
         feature_index_text = (feature_dir / "index.md").read_text(encoding="utf-8")
-        if "| `model` | `modules.order.designs.model` | `modules/order/designs/model.md` | D1 |" not in feature_index_text:
+        if "| `modules.order.designs.model` | `modules/order/designs/model.md` | D1 |" not in feature_index_text:
             raise AssertionError("design_init expansion must update feature index.md")
+        if "Baseline Delta" not in feature_index_text or "reuse/add/extend/modify/deprecate" not in feature_index_text:
+            raise AssertionError("feature index.md must preserve baseline delta guidance")
 
 
 def verify_publish_docs() -> None:
@@ -588,15 +645,15 @@ def verify_pretty_shiki_spec() -> None:
 
                 - **Feature ID**: FEAT-PRETTY
                 - **Base Module**: order
-                - **Contract Version**: v1
+                - **Spec Revision**: AS-IS
                 - **Created**: 2026-05-25
 
-                ## Target Artifacts
+                ## Target Outputs
 
-                | id | phase | kind | target | depends_on | contract | output_files |
-                | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-                | D1 | Design | model | `modules/order/designs/model.md` | - | `core-kernel/runtime/task_contracts/design/model.yaml` | `modules/order/designs/model.md` |
-                | CP | Design | code_contract | `code_contract.md` | D1 | `core-kernel/runtime/task_contracts/design/code_contract.yaml` | |
+                | id | phase | target | depends_on | contract | output_files |
+                | :--- | :--- | :--- | :--- | :--- | :--- |
+                | D1 | Design | `modules/order/designs/model.md` | - | `core-kernel/runtime/task_contracts/design/model.yaml` | `modules/order/designs/model.md` |
+                | C1 | Code | - | D1 | `core-kernel/runtime/task_contracts/code/entity.yaml` | |
                 """
             ),
             encoding="utf-8",
@@ -606,11 +663,11 @@ def verify_pretty_shiki_spec() -> None:
                 """\
                 # Feature Spec Index: FEAT-PRETTY
 
-                ## Generated Spec Artifacts
+                ## Generated Spec Files
 
-                | kind | id | path | source item |
-                | :--- | :--- | :--- | :--- |
-                | `model` | `modules.order.designs.model` | `modules/order/designs/model.md` | D1 |
+                | id | path | source item |
+                | :--- | :--- | :--- |
+                | `modules.order.designs.model` | `modules/order/designs/model.md` | D1 |
                 """
             ),
             encoding="utf-8",

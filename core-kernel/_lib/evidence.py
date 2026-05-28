@@ -4,7 +4,7 @@ from .markdown import metadata_value, read_text
 
 
 def code_contract_valid(feature_dir):
-    """Check if code_contract.md exists with a concrete version."""
+    """Check if optional code_contract.md implementation slice has a concrete version."""
     cp_path = feature_dir / "code_contract.md"
     if not cp_path.exists():
         return False, "code_contract.md missing"
@@ -16,7 +16,7 @@ def code_contract_valid(feature_dir):
 
 
 def code_contract_confirmed(feature_dir):
-    """Check if all confirmation checkboxes in code_contract.md are checked."""
+    """Check if all confirmation checkboxes in the optional implementation slice are checked."""
     cp_path = feature_dir / "code_contract.md"
     if not cp_path.exists():
         return False

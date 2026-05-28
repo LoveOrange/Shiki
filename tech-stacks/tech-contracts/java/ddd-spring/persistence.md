@@ -21,7 +21,7 @@
 
 - Entity-to-PO conversion lives under `infrastructure/[module]/persistence/converter/`.
 - Repository interfaces use Entity types, not PO types.
-- RepositoryImpl performs conversion internally.
+- RepositoryImpl performs conversion inside the repository implementation.
 
 ## DI Rules
 

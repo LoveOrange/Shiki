@@ -1,14 +1,20 @@
 id: infrastructure
 stage: Code
-kind: infrastructure
-goal: Implement persistence and ACL infrastructure from code contract.
+goal: Implement persistence and ACL infrastructure from current L2 AS-IS specs.
 inputs:
-- shiki_context/features/{feature}/code_contract.md
+- shiki_context/features/{feature}/_plan.md
+- shiki_context/features/{feature}/modules/{module}/designs/model.md
+- shiki_context/features/{feature}/modules/{module}/designs/persistence.md
+- shiki_context/features/{feature}/modules/{module}/designs/acl.md (optional)
 references:
 - core-kernel/workflows/code/infrastructure.md
+output:
+  path: plan output_files
+  mode: update
+  template: ""
 checks:
-- code contract exists
-- Contract Version is concrete
+- required L2 specs exist
+- spec-code alignment check completed before editing
 done_condition:
 - infrastructure code generated and registered in _plan.md output_files
 tech_contracts: ["java/ddd-spring"]

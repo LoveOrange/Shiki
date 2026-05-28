@@ -4,7 +4,7 @@
 
 - Keep persistence code under `infrastructure/` or another clearly named adapter package.
 - Repository ports expose domain types, not ORM models, SQL rows, SDK DTOs, or JSON dictionaries.
-- Repository implementations perform mapping internally.
+- Repository implementations perform mapping inside the repository layer.
 - Keep transactions at the application or unit-of-work boundary.
 
 ## Mapping Rules

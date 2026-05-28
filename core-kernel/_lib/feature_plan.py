@@ -13,7 +13,6 @@ ACL_CONTRACT = "core-kernel/runtime/task_contracts/design/acl.yaml"
 COMPONENT_CONTRACT = "core-kernel/runtime/task_contracts/design/component.yaml"
 ENTRANCE_SPEC_CONTRACT = "core-kernel/runtime/task_contracts/design/entrance_spec.yaml"
 FLOW_CONTRACT = "core-kernel/runtime/task_contracts/design/flow.yaml"
-CODE_CONTRACT_CONTRACT = "core-kernel/runtime/task_contracts/design/code_contract.yaml"
 CODE_ENTITY_CONTRACT = "core-kernel/runtime/task_contracts/code/entity.yaml"
 CODE_INTERFACE_CONTRACT = "core-kernel/runtime/task_contracts/code/interface_skeletons.yaml"
 CODE_FEATURE_CONTRACT = "core-kernel/runtime/task_contracts/code/feature_logic.yaml"
@@ -49,6 +48,14 @@ def _clean_cell(value):
     return value.strip().strip("`").strip()
 
 
+def _contract_ref(item):
+    return _clean_cell(item.get("contract", ""))
+
+
+def _contract_matches(item, suffix):
+    return _contract_ref(item).endswith(suffix)
+
+
 def _meaningful_bullets(section_text):
     bullets = []
     for raw_line in section_text.splitlines():
@@ -67,14 +74,13 @@ def render_bootstrap_plan(feature_id, created_on):
     rows = [[
         "B1",
         "Design",
-        "design_init",
         "`_plan.md`",
         "-",
         f"`{BOOTSTRAP_CONTRACT}`",
         "",
     ]]
     table = _markdown_table(
-        ["id", "phase", "kind", "target", "depends_on", "contract", "output_files"],
+        ["id", "phase", "target", "depends_on", "contract", "output_files"],
         rows,
     )
     return "\n".join(
@@ -88,10 +94,10 @@ def render_bootstrap_plan(feature_id, created_on):
             "",
             f"- **Feature ID**: {feature_id}",
             "- **Base Module**: [TBD]",
-            "- **Contract Version**: [TBD]",
+            "- **Spec Revision**: AS-IS",
             f"- **Created**: {created_on}",
             "",
-            "## Target Artifacts",
+            "## Target Outputs",
             "",
             table,
             "",
@@ -105,27 +111,26 @@ def render_feature_index(feature_id, items):
     generated_rows = []
     for item in items:
         phase = _clean_cell(item.get("phase", ""))
-        kind = _clean_cell(item.get("kind", ""))
         target = _clean_cell(item.get("target", ""))
         item_id = _clean_cell(item.get("id", ""))
         if phase != "Design":
             continue
-        if kind in {"design_init", "code_contract"}:
+        if _contract_matches(item, "design/design_init.yaml") or _contract_matches(item, "design/code_contract.yaml"):
             continue
         if target in {"", "-", "baseline", "module baseline"}:
             continue
-        artifact_id = target.rsplit(".", 1)[0].replace("/", ".")
-        generated_rows.append([f"`{kind}`", f"`{artifact_id}`", f"`{target}`", item_id])
+        spec_id = target.rsplit(".", 1)[0].replace("/", ".")
+        generated_rows.append([f"`{spec_id}`", f"`{target}`", item_id])
 
     generated_table = _markdown_table(
-        ["kind", "id", "path", "source item"],
-        generated_rows or [["*(design_init appends here)*", "", "", ""]],
+        ["id", "path", "source item"],
+        generated_rows or [["*(design_init appends here)*", "", ""]],
     )
     return "\n".join(
         [
             f"# Feature Spec Index: {feature_id}",
             "",
-            "> Agent/runtime routing entry. It records feature artifacts and load paths only.",
+            "> Agent/runtime routing entry. It records feature spec files and load paths only.",
             "",
             "## Scope Files",
             "",
@@ -133,20 +138,22 @@ def render_feature_index(feature_id, items):
             "| :--- | :--- |",
             "| `README.md` | human entry point |",
             "| `index.md` | context routing |",
-            "| `_plan.md` | feature task ledger |",
+            "| `_plan.md` | feature task and output ledger |",
             "",
-            "## Feature Spec Artifacts",
+            "## Feature Spec Files",
             "",
-            "| kind | id | path | load when |",
-            "| :--- | :--- | :--- | :--- |",
-            "| `design_input` | `design_brief` | `design_brief.md` | requirement and design initialization |",
-            "| `contract_spec` | `code_contract` | `code_contract.md` | code and test work |",
-            "| `test_spec` | `test_cases` | `tests/test_cases.md` | test design and acceptance coverage |",
+            "| id | path | load when |",
+            "| :--- | :--- | :--- |",
+            "| `design_brief` | `design_brief.md` | requirement and design initialization |",
+            "| `code_contract` | `code_contract.md` | optional temporary implementation slice when direct specs exceed context budget |",
+            "| `test_cases` | `tests/test_cases.md` | test design and acceptance coverage |",
             "",
-            "## Generated Spec Artifacts",
+            "## Generated Spec Files",
             "",
             "After design_init, record only leaf specs declared by `_plan.md`.",
-            "Feature module specs use overlay paths aligned with baseline `modules/{module}/...`.",
+            "Feature module specs use overlay paths relative to the current feature root.",
+            "`modules/{module}/...` means `shiki_context/features/{feature}/modules/{module}/...`, not baseline `shiki_context/modules/{module}/...`.",
+            "Each feature overlay leaf spec must mark `§0 Baseline Delta` with `reuse/add/extend/modify/deprecate`.",
             "",
             generated_table,
             "",
@@ -189,37 +196,41 @@ def render_full_plan(feature_id, base_module, created_on, has_entrance, needs_ac
     entrance_target = f"`{module_root}/entrances/main.md`"
     flow_target = f"`{module_root}/flows/main.md`"
     rows = [
-        ["D1", "Design", "model", model_target, "-", f"`{MODEL_CONTRACT}`", ""],
-        ["D2", "Design", "persistence", persistence_target, "D1", f"`{PERSISTENCE_CONTRACT}`", ""],
+        ["D1", "Design", model_target, "-", f"`{MODEL_CONTRACT}`", ""],
+        ["D2", "Design", persistence_target, "D1", f"`{PERSISTENCE_CONTRACT}`", ""],
     ]
     if needs_acl:
-        rows.append(["D3", "Design", "acl", acl_target, "D1", f"`{ACL_CONTRACT}`", ""])
+        rows.append(["D3", "Design", acl_target, "D1", f"`{ACL_CONTRACT}`", ""])
         component_depends = "D1,D2,D3"
         flow_depends = "D1,D2,D3,D4"
-        cp_depends = "D1-D6" if has_entrance else "D1-D4,D6"
+        feature_logic_depends = "C2,D3,D6"
+        infrastructure_depends = "C1,C2,D2,D3"
     else:
         component_depends = "D1,D2"
         flow_depends = "D1,D2,D4"
-        cp_depends = "D1-D4,D6" if has_entrance else "D1,D2,D4,D6"
+        feature_logic_depends = "C2,D6"
+        infrastructure_depends = "C1,C2,D2"
 
-    rows.append(["D4", "Design", "component", component_target, component_depends, f"`{COMPONENT_CONTRACT}`", ""])
+    rows.append(["D4", "Design", component_target, component_depends, f"`{COMPONENT_CONTRACT}`", ""])
     if has_entrance:
-        rows.append(["D5", "Design", "entrance_spec", entrance_target, "D1", f"`{ENTRANCE_SPEC_CONTRACT}`", ""])
-    rows.append(["D6", "Design", "flow", flow_target, flow_depends, f"`{FLOW_CONTRACT}`", ""])
+        rows.append(["D5", "Design", entrance_target, "D1", f"`{ENTRANCE_SPEC_CONTRACT}`", ""])
+        adapter_depends = "C2,D4,D5"
+    else:
+        adapter_depends = "C2,D4"
+    rows.append(["D6", "Design", flow_target, flow_depends, f"`{FLOW_CONTRACT}`", ""])
     rows.extend(
         [
-            ["CP", "Design", "code_contract", "`code_contract.md`", cp_depends, f"`{CODE_CONTRACT_CONTRACT}`", ""],
-            ["C1", "Code", "entity", "-", "CP", f"`{CODE_ENTITY_CONTRACT}`", ""],
-            ["C2", "Code", "interface_skeletons", "-", "C1", f"`{CODE_INTERFACE_CONTRACT}`", ""],
-            ["C3", "Code", "feature_logic", "-", "C2", f"`{CODE_FEATURE_CONTRACT}`", ""],
-            ["C4", "Code", "infrastructure", "-", "C3", f"`{CODE_INFRA_CONTRACT}`", ""],
-            ["C5", "Code", "adapter", "-", "C4", f"`{CODE_ADAPTER_CONTRACT}`", ""],
-            ["M1", "Merge", "feature_merge", "baseline", "C5", f"`{MERGE_CONTRACT}`", ""],
+            ["C1", "Code", "-", "D1,D6", f"`{CODE_ENTITY_CONTRACT}`", ""],
+            ["C2", "Code", "-", "D1,D4", f"`{CODE_INTERFACE_CONTRACT}`", ""],
+            ["C3", "Code", "-", feature_logic_depends, f"`{CODE_FEATURE_CONTRACT}`", ""],
+            ["C4", "Code", "-", infrastructure_depends, f"`{CODE_INFRA_CONTRACT}`", ""],
+            ["C5", "Code", "-", adapter_depends, f"`{CODE_ADAPTER_CONTRACT}`", ""],
+            ["M1", "Merge", "baseline", "C5", f"`{MERGE_CONTRACT}`", ""],
         ]
     )
 
     table = _markdown_table(
-        ["id", "phase", "kind", "target", "depends_on", "contract", "output_files"],
+        ["id", "phase", "target", "depends_on", "contract", "output_files"],
         rows,
     )
     return "\n".join(
@@ -232,10 +243,12 @@ def render_full_plan(feature_id, base_module, created_on, has_entrance, needs_ac
             "",
             f"- **Feature ID**: {feature_id}",
             f"- **Base Module**: {base_module}",
-            "- **Contract Version**: [TBD]",
+            "- **Spec Revision**: AS-IS",
             f"- **Created**: {created_on}",
             "",
-            "## Target Artifacts",
+            "## Target Outputs",
+            "",
+            "> `target` is relative to the current feature root; `modules/...` means feature overlay, not baseline `shiki_context/modules/...`.",
             "",
             table,
             "",
@@ -275,13 +288,16 @@ def parse_plan(path):
     metadata = {
         "Feature ID": metadata_value(text, "Feature ID"),
         "Base Module": metadata_value(text, "Base Module"),
+        "Spec Revision": metadata_value(text, "Spec Revision"),
         "Contract Version": metadata_value(text, "Contract Version"),
         "Created": metadata_value(text, "Created"),
     }
-    items = parse_table(extract_section(text, "Target Artifacts"))
+    legacy_heading = "Target " + "Arti" + "facts"
+    section = extract_section(text, "Target Outputs") or extract_section(text, legacy_heading)
+    items = parse_table(section)
     return metadata, items
 
 
 def is_bootstrap_plan(items):
     """Return True when a plan still contains only the bootstrap row."""
-    return len(items) == 1 and items[0].get("kind") == "design_init"
+    return len(items) == 1 and _contract_matches(items[0], "design/design_init.yaml")

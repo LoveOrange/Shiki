@@ -1,6 +1,5 @@
 id: component
 stage: Design
-kind: component
 goal: Generate component design from model, persistence and ACL.
 inputs:
 - shiki_context/features/{feature}/modules/{module}/designs/model.md
@@ -8,7 +7,7 @@ inputs:
 - shiki_context/features/{feature}/modules/{module}/designs/acl.md
 references:
 - core-kernel/workflows/design/component.md
-artifact:
+output:
   path: features/{feature}/modules/{module}/designs/component.md
   mode: create
   template: core-kernel/templates/module/designs/_component_template.md
@@ -16,7 +15,9 @@ checks:
 - modules/{module}/designs/model.md exists
 - modules/{module}/designs/persistence.md exists
 - modules/{module}/designs/acl.md exists
+- baseline delta table uses only reuse/add/extend/modify/deprecate when generating feature overlay
 done_condition:
 - modules/{module}/designs/component.md created with 4-layer complete
+- §0 Baseline Delta filled or MANUAL_DECISION returned
 tech_contracts: ["java/ddd-spring"]
 workflow_ref: core-kernel/workflows/design/component.md

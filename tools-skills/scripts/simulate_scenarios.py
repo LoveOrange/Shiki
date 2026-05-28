@@ -51,9 +51,12 @@ def test_happy_path() -> None:
             "## 1. scan",
             "## 2. new feature",
             "## 3. status",
-            "## 4. apply",
+            "## 4. next",
+            "## 4a. apply",
             "## 5. review",
             "## 6. modify",
+            "## 7. doctor",
+            "## 8. sync",
         ]:
             check(heading in content, f"docs/CHEATSHEET.md contains {heading}")
 
@@ -70,6 +73,8 @@ def test_happy_path() -> None:
         ],
         "code": ["entity", "interface_skeletons", "feature_logic", "infrastructure", "adapter"],
         "merge": ["feature_merge"],
+        "sync": ["plan", "apply_leaf"],
+        "doctor": ["plan", "apply_item"],
     }
     for phase, names in expected.items():
         for name in names:
@@ -78,12 +83,16 @@ def test_happy_path() -> None:
             check(workflow.exists(), f"workflow exists: {phase}/{name}")
             check(contract.exists(), f"task contract exists: {phase}/{name}")
             if contract.exists():
-                ref = load_yaml_lite(contract).get("workflow_ref", "")
+                data = load_yaml_lite(contract)
+                ref = data.get("workflow_ref", "")
                 check(bool(ref) and (SHIKI_ROOT / ref).exists(), f"workflow_ref resolves: {phase}/{name}")
+                check("kind" not in data, f"task contract has no legacy kind field: {phase}/{name}")
+                check("output" in contract.read_text(encoding="utf-8"), f"task contract has output field: {phase}/{name}")
             if workflow.exists():
                 text = workflow.read_text(encoding="utf-8")
                 for heading in ["## Load", "## Steps", "## Verification"]:
                     check(heading in text, f"{phase}/{name} has {heading}", warn_only=True)
+    check((SHIKI_ROOT / "core-kernel" / "workflows" / "runner" / "next.md").exists(), "runner/next workflow exists")
 
 
 def test_tech_stack_contracts() -> None:

@@ -1,5 +1,15 @@
 # [ModuleName] - Domain Model
 
+## 0. Baseline Delta (Feature Overlay Only)
+
+Fill this section only when this file lives under
+`features/{feature}/modules/{module}/...`. Baseline files should use
+`N/A - baseline current valid`.
+
+| change_type | baseline_ref | overlay_ref | change_summary | merge_action |
+| :--- | :--- | :--- | :--- | :--- |
+| `[reuse/add/extend/modify/deprecate]` | `modules/{module}/designs/model.md#[section]` / `N/A` | `features/{feature}/modules/{module}/designs/model.md#[section]` | change relative to baseline | no-op / add / merge / replace / remove |
+
 ## 1. Ubiquitous Language
 
 | code term | business term | definition | source |

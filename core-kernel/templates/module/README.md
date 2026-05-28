@@ -8,7 +8,7 @@ Human entry point for this module. Runtime uses `index.md` to route to leaf spec
 | :--- | :--- |
 | `README.md` | human entry point |
 | `index.md` | runtime routing index |
-| `_plan.md` | module task ledger |
+| `_plan.md` | module task and output ledger |
 | `designs/` | model, persistence, ACL, and component design |
 | `entrances/` | external entrance contracts |
 | `flows/` | scenario flows and call chains |

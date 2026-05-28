@@ -15,7 +15,7 @@ And selected tech contracts are copied into the project-owned constitution.
 
 Given a Java DDD Spring sample project
 When `scan.py --only s0.1` runs
-Then `shiki_context/workspace/_plan.md` contains init.entrance tasks and init.sync
+Then `shiki_context/workspace/_plan.md` contains init.entrance tasks and init.sync routed by `contract`
 And project/module indexes are created or updated.
 
 ## HIT-003 Dependency Scan Writes Project Specs
@@ -37,27 +37,29 @@ And the flow contains a Discovery Log.
 Given initialized `shiki_context/`
 When `new_feature.py --taskid FEAT-001` runs
 Then a feature workspace with `design_brief.md`, `_plan.md`, `index.md`,
-`code_contract.md`, and `tests/test_cases.md` exists
+and `tests/test_cases.md` exists
 And the bootstrap plan contains the design_init item.
 
 ## HIT-006 Design Init Expands Plan
 
 Given a filled Design Brief
 When design_init runs
-Then `_plan.md` expands to direct design, code_contract, code, and merge tasks
-And feature index records generated leaf specs.
+Then `_plan.md` expands to direct design, code, and merge tasks using Target Outputs
+And targets are feature-root relative, not baseline paths
+And feature index records generated leaf specs and Baseline Delta guidance.
 
-## HIT-007 Code Contract Gate
+## HIT-007 L2 Spec Gate
 
 Given model, persistence, ACL, component, entrance, and flow specs
-When code_contract generation runs
-Then `code_contract.md` contains sections 1-6, unchecked confirmations, and a concrete version.
+When Code tasks are selected
+Then required L2 AS-IS leaf specs exist and are routable from the feature index
+And downstream Code/Test items are not marked STALE.
 
-## HIT-008 Code Tasks Obey Contract
+## HIT-008 Code Tasks Obey L2 Specs
 
-Given a confirmed code contract
+Given current L2 AS-IS leaf specs and target source context
 When Code tasks run
-Then generated code changes only declared targets
+Then generated code changes only facts declared by those specs
 And plan output_files are updated.
 
 ## HIT-009 Merge Writes Baseline
@@ -66,10 +68,27 @@ Given accepted feature overlay specs and verification evidence
 When feature_merge runs
 Then baseline module specs are updated
 And module index paths remain valid.
+And every merge action traces to Baseline Delta.
 
-## HIT-010 Public Surface Is Clean
+## HIT-010 Sync Plans Before Applying
+
+Given changed source files or a bounded git diff scope
+When sync runs
+Then `shiki_context/workspace/sync_plan.md` is created or updated first
+And apply_leaf updates at most one target leaf spec from direct source evidence.
+
+## HIT-011 Doctor Is Confirmed And Bounded
+
+Given a context-store maintenance issue
+When doctor runs without explicit confirmation
+Then it outputs a read-only diagnosis and does not modify files.
+When confirmation is provided
+Then it creates `shiki_context/workspace/doctor_plan.md`
+And apply_item repairs at most one deterministic item.
+
+## HIT-012 Public Surface Is Clean
 
 Given the public Shiki repository
 When maintenance verification runs
-Then the public source excludes local context, caches, and internal transfer scripts
-And no non-English source text, legacy brand references, or company-specific package names remain.
+Then the public source excludes local context, caches, and private transfer scripts
+And no non-English source text, legacy brand references, or organization-specific package names remain.

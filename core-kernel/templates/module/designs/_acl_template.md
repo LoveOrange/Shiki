@@ -1,7 +1,17 @@
 # [ModuleName] - Module Scope and ACL
 
-Defines business boundaries, internal dependencies, external dependencies, and
+Defines business boundaries, module dependencies, external dependencies, and
 anti-corruption interfaces.
+
+## 0. Baseline Delta (Feature Overlay Only)
+
+Fill this section only when this file lives under
+`features/{feature}/modules/{module}/...`. Baseline files should use
+`N/A - baseline current valid`.
+
+| change_type | baseline_ref | overlay_ref | change_summary | merge_action |
+| :--- | :--- | :--- | :--- | :--- |
+| `[reuse/add/extend/modify/deprecate]` | `modules/{module}/designs/acl.md#[section]` / `N/A` | `features/{feature}/modules/{module}/designs/acl.md#[section]` | change relative to baseline | no-op / add / merge / replace / remove |
 
 ## 1. Business Module Scope
 
@@ -10,7 +20,7 @@ anti-corruption interfaces.
 - **Includes**: TBD
 - **Excludes**: TBD
 
-## 2. Internal Dependencies
+## 2. Module Dependencies
 
 | module | interaction | direction | purpose | reference |
 | :--- | :--- | :--- | :--- | :--- |

@@ -1,14 +1,16 @@
 id: sync
 stage: Init
-kind: init.sync
-goal: Aggregate global architecture, MQ topology, external systems, and tech debt.
+goal: Aggregate global architecture, messaging topology, and technical debt.
 inputs:
-- shiki_context/modules/*/flows/*.md
+- shiki_context/workspace/_plan.md
+- shiki_context/project/index.md
+- shiki_context/modules/*/index.md
+- Discovery Log snippets from completed init.entrance flow outputs
 - shiki_context/project/architecture.md
 - shiki_context/project/integration.md
 references:
 - core-kernel/workflows/init/sync.md
-artifact:
+output:
   path: project/tech_debt.md
   mode: create_or_update
   template: ""
@@ -16,6 +18,7 @@ checks:
 - all init.entrance rows in Init _plan.md have output_files
 evidence_rules:
 - aggregate Discovery Log entries without duplicating module-local detail
+- do not load all module flows at once; process by module or flow batch when needed
 retry_policy:
   max_attempts: 1
 done_condition:

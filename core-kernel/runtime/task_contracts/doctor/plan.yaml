@@ -1,0 +1,28 @@
+id: doctor_plan
+stage: Init
+goal: Diagnose Context Store maintenance issues and create a bounded repair plan after confirmation.
+inputs:
+- shiki_context/workspace/active_task.md
+- current scope _plan.md when present
+- shiki_context/project/index.md
+- necessary module or feature index.md files
+- user selected doctor mode and confirmation
+references:
+- core-kernel/runtime/context_loading.md
+- core-kernel/workflows/doctor/plan.md
+output:
+  path: workspace/doctor_plan.md
+  mode: create_or_update
+  template: ""
+checks:
+- read-only diagnosis is completed before any repair plan is written
+- destructive or ambiguous changes are excluded from executable rows
+evidence_rules:
+- write MANUAL_DECISION for uncertain migration or recovery mapping
+- do not modify business spec bodies during planning
+retry_policy:
+  max_attempts: 1
+done_condition:
+- unconfirmed runs output a diagnosis without file changes
+- confirmed runs create workspace/doctor_plan.md with bounded rows routed to doctor/apply_item.yaml or MANUAL_DECISION items
+workflow_ref: core-kernel/workflows/doctor/plan.md

@@ -3,6 +3,9 @@
 Copy the relevant prompt into your AI coding agent. Paths assume Shiki is mounted
 as `shiki/` in the consumer project.
 
+`next` advances the current plan by one ready item. `apply` is kept as a
+compatibility entry with the same current behavior.
+
 ## 1. scan
 
 Run repository discovery and build the initial Shiki baseline.
@@ -12,7 +15,7 @@ Use Shiki scan.
 
 Load:
 #/shiki/core-kernel/runtime/context_loading.md
-#/shiki/core-kernel/workflows/runner/apply.md
+#/shiki/core-kernel/workflows/runner/next.md
 #/shiki_context/workspace/active_task.md
 #/shiki_context/workspace/_plan.md
 
@@ -50,13 +53,35 @@ Steps:
 1. Read active_task.md.
 2. Read the current scope _plan.md.
 3. Check depends_on and output_files.
-4. Report the next runnable item, blockers, and missing artifacts.
+4. Report the next runnable item, gate status, blockers, and missing files.
 5. Do not execute the item.
 ```
 
-## 4. apply
+## 4. next
 
 Execute exactly one ready plan item.
+
+```text
+Use Shiki next.
+
+Load:
+#/shiki/core-kernel/runtime/context_loading.md
+#/shiki/core-kernel/workflows/runner/next.md
+#/shiki_context/workspace/active_task.md
+
+Steps:
+1. Read active_task.md and the current _plan.md.
+2. Select the first item whose dependencies are satisfied and output_files are empty or marked STALE.
+3. Load its task contract from core-kernel/runtime/task_contracts/.
+4. Load the workflow_ref, required template, and selected tech contract slices.
+5. Execute only that workflow.
+6. Update output_files for the completed item.
+7. Stop.
+```
+
+## 4a. apply
+
+Compatibility entry. Current semantics are the same as `next`.
 
 ```text
 Use Shiki apply.
@@ -67,18 +92,14 @@ Load:
 #/shiki_context/workspace/active_task.md
 
 Steps:
-1. Read active_task.md and the current _plan.md.
-2. Select the first item whose dependencies are satisfied and output_files are empty.
-3. Load its task contract from core-kernel/runtime/task_contracts/.
-4. Load the workflow_ref, required template, and selected tech contract slices.
-5. Execute only that workflow.
-6. Update output_files for the completed item.
-7. Stop.
+1. Execute one ready item exactly as `next` would.
+2. State that this run used the apply compatibility entry.
+3. Stop after one item.
 ```
 
 ## 5. review
 
-Review produced artifacts and implementation alignment.
+Review produced files and implementation alignment.
 
 ```text
 Use Shiki review.
@@ -89,8 +110,8 @@ Load:
 
 Check:
 1. The active _plan.md item and its output_files.
-2. The relevant code_contract.md, design_brief.md, leaf specs, and changed code.
-3. Whether code follows the declared contract and selected tech contracts.
+2. The relevant L2 AS-IS leaf specs, design_brief.md, optional implementation slice, and changed code.
+3. Whether code follows the current specs and selected tech contracts.
 4. Whether tests cover happy path, boundaries, errors, permissions, idempotency, concurrency, and integration.
 
 Output findings first, ordered by severity. Do not change files unless asked.
@@ -109,9 +130,9 @@ Input:
 
 Steps:
 1. Load active_task.md and direct specs related to the target.
-2. Determine whether the change is code-only, spec-only, or contract-affecting.
+2. Determine whether the change is code-only, spec-only, or affects downstream items.
 3. Edit only the required files.
-4. Update output_files or relevant specs when the change affects the plan.
+4. Mark downstream completed items `STALE` when the change affects them.
 5. Run the smallest meaningful verification.
 ```
 
@@ -129,11 +150,52 @@ Check:
 4. shiki_context/features/
 5. shiki_context/constitution/tech_contracts/
 
-Only create or update missing structural files such as workspace/.gitignore.
+Default to read-only diagnosis. After explicit confirmation, create
+shiki_context/workspace/doctor_plan.md and execute one deterministic item at a time.
 Do not move, delete, rewrite, or untrack existing user files without approval.
 ```
 
-## 8. publish docs
+## 8. sync
+
+Plan and apply bounded Code -> Spec synchronization.
+
+```text
+Use Shiki sync.
+
+Load:
+#/shiki/core-kernel/runtime/context_loading.md
+#/shiki/core-kernel/runtime/task_contracts/sync/plan.yaml
+#/shiki/core-kernel/runtime/task_contracts/sync/apply_leaf.yaml
+#/shiki_context/workspace/active_task.md
+
+Steps:
+1. Use only the user-specified changed source files, module, feature, or git diff scope.
+2. First create or update shiki_context/workspace/sync_plan.md.
+3. Do not edit specs during planning.
+4. Then execute only the first ready sync_plan item.
+5. Update exactly one target leaf spec from direct source evidence.
+6. Mark ambiguous mappings MANUAL_DECISION instead of inventing facts.
+```
+
+## 9. fix
+
+Analyze an exception stack and route the repair.
+
+```text
+Use Shiki fix.
+
+Input:
+- Exception stack: <paste stack>
+
+Steps:
+1. Read the stack and infer the failing source location.
+2. Load the related source and current specs only as needed.
+3. Identify whether the issue is code -> code, code -> spec, or feature -> spec.
+4. Recommend the next write path: modify, sync, or explicit feature plan.
+5. Do not create or modify plans unless explicitly asked.
+```
+
+## 10. publish docs
 
 Publish Markdown specs as an offline HTML site.
 
@@ -141,7 +203,7 @@ Publish Markdown specs as an offline HTML site.
 python shiki/tools-skills/skills/spec-to-html/scripts/publish_docs.py <input-path> --title "Shiki Spec" --fail-on-broken-links
 ```
 
-## 9. publish pretty Shiki spec
+## 11. publish pretty Shiki spec
 
 Generate an L0 human-friendly spec site from Shiki L1 consensus specs.
 

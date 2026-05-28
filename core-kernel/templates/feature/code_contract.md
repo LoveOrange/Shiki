@@ -1,12 +1,15 @@
-# Code Contract: [FEAT-ID]
+# Implementation Slice: [FEAT-ID]
 
-The single coding fact source after design. Coder agents may only implement what
-this file declares. All `[ ]` confirmations must be checked before coding.
+Optional one-shot implementation slice. It extracts coding facts from L2 AS-IS
+leaf specs for the current Code task when direct spec loading is too large.
+This file is not a long-lived fact source. If it conflicts with L2 leaf specs,
+trust the leaf specs and rebuild this slice.
 
 ## 0. Metadata
 
 - **Feature ID**: [FEAT-ID]
 - **Contract Version**: [TBD]
+- **Source Specs**: [TBD]
 
 ## 1. Entities
 
@@ -43,9 +46,3 @@ this file declares. All `[ ]` confirmations must be checked before coding.
 | target | transaction | idempotency | concurrency | confirmed |
 | :--- | :--- | :--- | :--- | :--- |
 | `[Class.method]` | yes/no | key/N/A | lock/version/N/A | [ ] |
-
-## 7. Change Log
-
-| version | summary |
-| :--- | :--- |
-| v1 | initial draft |

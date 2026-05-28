@@ -4,7 +4,7 @@
 
 Shiki is a workflow kernel for controllable AI software development. Its purpose
 is to make AI coding depend less on long chat memory and more on explicit
-engineering artifacts:
+engineering files:
 
 - bounded phases
 - atomic tasks
@@ -43,7 +43,7 @@ to resume from repository state without hidden chat history.
 ### 3. Task Contracts Over Prompt Templates
 
 Prompts are implementation details. The stable unit is the task contract: goal,
-inputs, references, artifact, checks, retry policy, and done condition.
+inputs, references, output, checks, retry policy, and done condition.
 
 ### 4. Tech Contracts As Replaceable Loadouts
 
@@ -58,7 +58,7 @@ agents without changing task contracts.
 
 ### 6. Verification Gates Are Mandatory
 
-An artifact is not done because the model replied. It is done when declared
+An output is not done because the model replied. It is done when declared
 checks pass and plan output is recorded.
 
 ### 7. Human Control Stays Visible
@@ -71,7 +71,7 @@ accept or reject design, and merge or discard feature overlays.
 The first public milestone is a small but complete loop:
 
 ```text
-Design Brief -> Design Artifacts -> Code Contract -> Code Task -> Verification Gate
+Design Brief -> L2 AS-IS Specs -> Code Task -> Verification Gate
 ```
 
 Required outcomes:

@@ -4,18 +4,25 @@
 
 ## Load
 
-- all `shiki_context/modules/*/flows/*.md` files
+- `shiki_context/workspace/_plan.md`
+- `shiki_context/project/index.md`
+- module indexes that list completed flows
 - `shiki_context/project/architecture.md`
 - `shiki_context/project/integration.md`
 - `shiki_context/project/tech_debt.md` when present
 
+Do not load every `shiki_context/modules/*/flows/*.md` body at once. When there
+are many flows, process by module or flow batch and read only Discovery Log or
+architecture-audit snippets.
+
 ## Steps
 
-1. Scan flow files for Discovery Log and architecture audit entries.
-2. Extract cross-module dependencies.
-3. Extract MQ topics and external systems.
-4. Collect architecture violations and warnings.
-5. Deduplicate findings while preserving source references.
+1. Build the completed flow list from workspace plan output files and module indexes.
+2. Scan only the relevant flow snippets for Discovery Log and architecture audit entries.
+3. Extract cross-module dependencies.
+4. Extract MQ topics and external systems.
+5. Collect architecture violations and warnings.
+6. Deduplicate findings while preserving source references.
 
 ## Output
 

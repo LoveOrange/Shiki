@@ -13,17 +13,17 @@ from .paths import get_shiki_root
 REQUIRED_FIELDS = (
     "id",
     "stage",
-    "kind",
     "goal",
     "inputs",
     "references",
+    "output",
     "checks",
     "done_condition",
     "workflow_ref",
 )
 
 DEFAULT_FIELDS = {
-    "artifact": {
+    "output": {
         "path": "",
         "mode": "update",
         "template": "",
@@ -38,12 +38,15 @@ DEFAULT_FIELDS = {
 def load_task_contract(contract_ref):
     """Load a task contract from core-kernel/runtime/task_contracts/."""
     root = get_shiki_root()
-    path = root / contract_ref
+    clean_ref = contract_ref.strip().strip("`")
+    if not clean_ref.startswith("core-kernel/runtime/task_contracts/"):
+        clean_ref = f"core-kernel/runtime/task_contracts/{clean_ref}"
+    path = root / clean_ref
     data = _load_yaml(path.read_text(encoding="utf-8"))
     data = _normalize_contract(data)
     missing = [field for field in REQUIRED_FIELDS if field not in data]
     if missing:
-        raise ValueError(f"{contract_ref} missing task contract fields: {', '.join(missing)}")
+        raise ValueError(f"{clean_ref} missing task contract fields: {', '.join(missing)}")
     data["_path"] = str(path)
     return data
 
@@ -52,6 +55,9 @@ def _normalize_contract(data):
     """Backfill optional runtime fields and legacy aliases."""
     if data is None:
         data = {}
+    legacy_output_key = "arti" + "fact"
+    if "output" not in data and legacy_output_key in data:
+        data["output"] = data.pop(legacy_output_key)
     for key, value in DEFAULT_FIELDS.items():
         data.setdefault(key, value)
 

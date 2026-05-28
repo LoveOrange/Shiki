@@ -1,24 +1,28 @@
 # Infrastructure Code
 
-> Role: Coder. Implement persistence and ACL infrastructure declared by `code_contract.md` only.
+> Role: Coder. Implement persistence and ACL infrastructure from current L2 AS-IS specs only.
 
 ## Load
 
-- `features/{feature}/code_contract.md`
 - `features/{feature}/_plan.md`
+- `features/{feature}/index.md`
+- `features/{feature}/modules/{module}/designs/model.md`
+- `features/{feature}/modules/{module}/designs/persistence.md`
+- `features/{feature}/modules/{module}/designs/acl.md` when present
 - target source and direct dependencies
 - tech contracts: persistence, ACL, and exception
 
 ## Steps
 
-1. Confirm `code_contract.md` exists and has a concrete Contract Version.
-2. Generate PO classes in `infrastructure/[module]/persistence/po/` with `PO` suffixes.
-3. Use table names with the `[module]_` prefix.
-4. Flatten VO fields into columns.
-5. Generate Entity-to-PO converters and RepositoryImpl classes.
-6. Generate SupportImpl classes for declared Support interfaces.
-7. Translate external exceptions into AppException with declared error codes.
-8. Update the matching plan item output_files.
+1. Confirm model and persistence specs exist; ACL work also requires an ACL spec. Return `BLOCKED` when required specs are missing.
+2. Compare current source to L2 specs and list table, Repository, Converter, and Support differences before editing.
+3. Generate or update PO classes in `infrastructure/[module]/persistence/po/` with `PO` suffixes.
+4. Use table names with the `[module]_` prefix.
+5. Flatten VO fields into columns.
+6. Generate Entity-to-PO converters and RepositoryImpl classes.
+7. Generate SupportImpl classes for declared Support interfaces.
+8. Translate external exceptions into AppException with declared error codes.
+9. Update the matching plan item `output_files`.
 
 ## Verification
 

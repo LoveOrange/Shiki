@@ -1,0 +1,28 @@
+id: doctor_apply_item
+stage: Init
+goal: Execute one confirmed deterministic doctor repair item.
+inputs:
+- shiki_context/workspace/doctor_plan.md
+- current row whose contract points to doctor/apply_item.yaml
+- files named by the current row
+references:
+- core-kernel/runtime/context_loading.md
+- core-kernel/workflows/doctor/apply_item.md
+output:
+  path: target from doctor_plan.md
+  mode: update
+  template: ""
+checks:
+- current row has contract doctor/apply_item.yaml
+- user confirmation is recorded in doctor_plan.md Meta
+- row is deterministic and not marked MANUAL_DECISION
+evidence_rules:
+- execute only the current row
+- never rewrite business spec bodies during doctor repair
+- never run git index operations
+retry_policy:
+  max_attempts: 1
+done_condition:
+- current row output_files records changed files, NOOP, BLOCKED, or MANUAL_DECISION
+- no unrelated context store files are changed
+workflow_ref: core-kernel/workflows/doctor/apply_item.md

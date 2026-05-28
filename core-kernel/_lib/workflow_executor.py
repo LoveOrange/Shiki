@@ -20,8 +20,8 @@ class WorkflowExecutionPlan:
     stage: str
     workflow_ref: str
     tech_contract: str
-    artifact_path: str
-    artifact_mode: str
+    output_path: str
+    output_mode: str
     template_ref: str
     inputs: tuple[str, ...]
     references: tuple[str, ...]
@@ -32,15 +32,15 @@ class WorkflowExecutionPlan:
 
 def build_execution_plan(item, contract):
     """Build a workflow execution plan from one plan item and task contract."""
-    artifact = contract["artifact"]
+    output = contract["output"]
     return WorkflowExecutionPlan(
         task_id=contract["id"],
         stage=contract["stage"],
         workflow_ref=contract["workflow_ref"],
         tech_contract=contract["tech_contract"],
-        artifact_path=artifact["path"],
-        artifact_mode=artifact["mode"],
-        template_ref=artifact["template"],
+        output_path=output["path"],
+        output_mode=output["mode"],
+        template_ref=output["template"],
         inputs=tuple(contract["inputs"]),
         references=tuple(contract["references"]),
         checks=tuple(contract["checks"]),
@@ -64,4 +64,3 @@ class WorkflowExecutor(Protocol):
 
     def execute(self, plan: WorkflowExecutionPlan) -> WorkflowExecutionResult:
         """Execute exactly one workflow plan and return a normalized result."""
-

@@ -30,7 +30,7 @@ def copy_feature_template_tree(template_dir, destination_dir, task_id):
     copied = []
     for template_path in sorted(path for path in template_dir.rglob("*") if path.is_file()):
         relative = template_path.relative_to(template_dir)
-        if relative.as_posix() == "design_brief.md":
+        if relative.as_posix() in {"design_brief.md", "code_contract.md"}:
             continue
         copy_feature_template_file(template_path, destination_dir / relative, task_id)
         copied.append(str(relative))
@@ -85,7 +85,7 @@ def print_report(feat_dir, created_files, task_id):
     print("")
     print("  Next steps:")
     print("    1. Fill in design_brief.md.")
-    print("    2. Use apply to run design_init and expand the plan.")
+    print("    2. Use next to run design_init and expand the plan.")
     print("    3. Follow the plan through Design -> Code -> Test -> Merge.")
     print("=" * 55)
 

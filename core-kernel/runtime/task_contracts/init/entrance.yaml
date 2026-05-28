@@ -1,6 +1,5 @@
 id: entrance
 stage: Init
-kind: init.entrance
 goal: Extract existing entry contracts, trace call chains, and map business flows.
 inputs:
 - shiki_context/project/architecture.md
@@ -8,7 +7,7 @@ inputs:
 - source target from Init _plan.md
 references:
 - core-kernel/workflows/init/entrance.md
-artifact:
+output:
   path: modules/{module}/entrances/{entrance}.md
   mode: create_or_update
   template: core-kernel/templates/module/entrances/_entrance_spec_template.md

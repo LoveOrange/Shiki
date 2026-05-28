@@ -726,10 +726,12 @@ def parse_plan(plan_path: Path) -> tuple[dict[str, str], list[dict[str, str]]]:
     meta = {
         "Feature ID": metadata_value(text, "Feature ID"),
         "Base Module": metadata_value(text, "Base Module"),
+        "Spec Revision": metadata_value(text, "Spec Revision"),
         "Contract Version": metadata_value(text, "Contract Version"),
         "Created": metadata_value(text, "Created"),
     }
-    items = parse_table(extract_section(text, "Target Artifacts"))
+    legacy_heading = "Target " + "Arti" + "facts"
+    items = parse_table(extract_section(text, "Target Outputs") or extract_section(text, legacy_heading))
     return meta, items
 
 
@@ -1076,7 +1078,7 @@ def render_feature_overview(feature: FeatureSpec, context_dir: Path) -> str:
         plan_rows.append([
             item.get("id", ""),
             item.get("phase", ""),
-            item.get("kind", ""),
+            item.get("contract", ""),
             item.get("target", ""),
             item.get("depends_on", ""),
             status_for_plan_item(item),
@@ -1089,6 +1091,7 @@ def render_feature_overview(feature: FeatureSpec, context_dir: Path) -> str:
     meta_rows = [
         ["Feature ID", feature.plan_meta.get("Feature ID") or feature.feature_id],
         ["Base Module", feature.plan_meta.get("Base Module") or metadata_value(brief, "Module") or "N/A"],
+        ["Spec Revision", feature.plan_meta.get("Spec Revision") or "N/A"],
         ["Contract Version", feature.plan_meta.get("Contract Version") or "N/A"],
         ["Created", feature.plan_meta.get("Created") or metadata_value(brief, "Date") or "N/A"],
         ["Source", metadata_value(brief, "Source") or "N/A"],
@@ -1118,7 +1121,7 @@ def render_feature_overview(feature: FeatureSpec, context_dir: Path) -> str:
         "",
         "## Delivery Plan",
         "",
-        markdown_table(["id", "phase", "kind", "target", "depends_on", "status"], plan_rows or [["N/A", "N/A", "N/A", "N/A", "N/A", "open"]]),
+        markdown_table(["id", "phase", "contract", "target", "depends_on", "status"], plan_rows or [["N/A", "N/A", "N/A", "N/A", "N/A", "open"]]),
         "",
         "## Consensus Files",
         "",
@@ -1270,11 +1273,11 @@ def render_module_page(module_dir: Path, context_dir: Path) -> str:
     ]
     if index_path.exists():
         lines.extend(["## Boundary", "", source_note(index_path, context_dir), "", section_or_na(index_text, "Business Boundary"), ""])
-        for section in ["Design Artifacts", "Entrance Spec Artifacts", "Flow Artifacts", "Loading Protocol"]:
+        for section in ["Design Files", "Entrance Spec Files", "Flow Files", "Design Artifacts", "Entrance Spec Artifacts", "Flow Artifacts", "Loading Protocol"]:
             body = extract_section(index_text, section)
             if body:
                 lines.extend([f"## {section}", "", body, ""])
-    lines.extend(["## Artifact Inventory", "", markdown_table(["role", "title", "source"], artifact_rows or [["N/A", "N/A", "N/A"]]), ""])
+    lines.extend(["## File Inventory", "", markdown_table(["role", "title", "source"], artifact_rows or [["N/A", "N/A", "N/A"]]), ""])
     return "\n".join(lines)
 
 

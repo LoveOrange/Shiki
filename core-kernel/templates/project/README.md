@@ -9,7 +9,7 @@ leaf specs; this README is not a task fact source.
 | :--- | :--- |
 | `README.md` | human entry point |
 | `index.md` | runtime routing index |
-| `_plan.md` | project task and artifact ledger |
+| `_plan.md` | project task and output ledger |
 | `architecture.md` | system purpose, module topology, entry points, dependencies |
 | `ubiquitous_language.md` | shared vocabulary and core states |
 | `techstack.md` | stack overview and implementation constraints |

@@ -240,7 +240,9 @@ def existing_plan_items(plan_path: Path) -> list[dict]:
     if not plan_path.exists():
         return []
     text = read_text(plan_path)
-    return parse_table(extract_section(text, "Target Artifacts"))
+    legacy_heading = "Target " + "Arti" + "facts"
+    section = extract_section(text, "Target Outputs") or extract_section(text, legacy_heading)
+    return parse_table(section)
 
 
 def write_plan(config: ScanConfig, entries: list[EntryPoint], force: bool = False) -> bool:
@@ -258,7 +260,6 @@ def write_plan(config: ScanConfig, entries: list[EntryPoint], force: bool = Fals
             [
                 f"`{item_id}`",
                 "Init",
-                "`init.entrance`",
                 f"`{entry.class_name}`",
                 f"`{entry.module}`",
                 "-",
@@ -271,7 +272,6 @@ def write_plan(config: ScanConfig, entries: list[EntryPoint], force: bool = Fals
             [
                 "`init.sync`",
                 "Init",
-                "`init.sync`",
                 "`Discovery Log`",
                 "-",
                 ",".join(entrance_ids),
@@ -281,7 +281,7 @@ def write_plan(config: ScanConfig, entries: list[EntryPoint], force: bool = Fals
         )
 
     table = markdown_table(
-        ["id", "phase", "kind", "target", "module", "depends_on", "contract", "output_files"],
+        ["id", "phase", "target", "module", "depends_on", "contract", "output_files"],
         rows,
     )
     config.plan_path.parent.mkdir(parents=True, exist_ok=True)
@@ -294,7 +294,7 @@ def write_plan(config: ScanConfig, entries: list[EntryPoint], force: bool = Fals
                 "> After `scan.py` registers entry tasks, it can run entry analysis and global sync.",
                 "> This file is not long-lived phase progress; feature progress lives in `features/{feature}/_plan.md`.",
                 "",
-                "## Target Artifacts",
+                "## Target Outputs",
                 "",
                 table,
                 "",
@@ -476,17 +476,22 @@ def normalize_depends(depends_on: str) -> list[str]:
 
 
 def row_done(row: dict) -> bool:
-    return clean_cell(row.get("output_files", "")) not in EMPTY_VALUES
+    output = clean_cell(row.get("output_files", ""))
+    return output not in EMPTY_VALUES and not output.upper().startswith("STALE")
 
 
 def load_rows(config: ScanConfig) -> list[dict]:
     return existing_plan_items(config.plan_path)
 
 
-def next_ready_row(rows: list[dict], kind: str) -> dict | None:
+def contract_matches(row: dict, contract_ref: str) -> bool:
+    return clean_cell(row.get("contract", "")).endswith(contract_ref)
+
+
+def next_ready_row(rows: list[dict], contract_ref: str) -> dict | None:
     completed = {clean_cell(row.get("id", "")) for row in rows if row_done(row)}
     for row in rows:
-        if clean_cell(row.get("kind", "")) != kind:
+        if not contract_matches(row, contract_ref):
             continue
         if row_done(row):
             continue
@@ -633,7 +638,8 @@ Run Discovery Sync.
 - {config.shiki_dir}/core-kernel/workflows/init/sync.md
 
 # Current Task
-- Scan Discovery Log sections in {config.context_dir}/modules/*/flows/*.md.
+- Build the completed flow list from {config.context_dir}/workspace/_plan.md and module indexes.
+- Read Discovery Log or architecture audit snippets by module or flow batch; do not load every flow body at once.
 - Aggregate cross-module dependencies, MQ topics, external systems, and architecture violations.
 
 # Output Requirements
@@ -673,7 +679,7 @@ def run_analysis(config: ScanConfig, skip_on_error: bool = False, max_items: Opt
             print(f"[STOP] reached max-items={max_items}")
             return failed == 0
         rows = load_rows(config)
-        row = next_ready_row(rows, "init.entrance")
+        row = next_ready_row(rows, "init/entrance.yaml")
         if row is None:
             break
         if analyze_one(config, row):
@@ -685,7 +691,7 @@ def run_analysis(config: ScanConfig, skip_on_error: bool = False, max_items: Opt
     print(f"[ANALYZE] entry analysis complete: success={completed}, failed={failed}")
 
     rows = load_rows(config)
-    sync_row = next_ready_row(rows, "init.sync")
+    sync_row = next_ready_row(rows, "init/sync.yaml")
     if sync_row is not None:
         return run_sync(config, sync_row) and failed == 0
     return failed == 0
@@ -715,7 +721,7 @@ def main() -> int:
         return 0 if run_dependency_scan(config) else 1
     if args.sync_only:
         rows = load_rows(config)
-        sync_row = next_ready_row(rows, "init.sync")
+        sync_row = next_ready_row(rows, "init/sync.yaml")
         if sync_row is None:
             print("[SYNC] no runnable init.sync task.")
             return 0

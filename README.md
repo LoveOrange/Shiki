@@ -28,7 +28,7 @@ contract.
 - Workflow-driven execution: each task is routed from `_plan.md` to a task contract and a workflow.
 - File-backed state: briefs, specs, plans, tech rules, and outputs live in versioned files.
 - Current valid specs: the active leaf specs in scope are the source of truth.
-- Code contract gate: design artifacts converge into `code_contract.md`; code follows that contract.
+- L2 AS-IS specs: code follows current leaf specs directly; `code_contract.md` is only an optional implementation slice.
 - Tech contracts: language and architecture rules are replaceable stacks such as `java/ddd-spring`.
 - Minimal context: normal tasks load only plan state, direct dependencies, workflow, templates, and selected tech rules.
 
@@ -60,7 +60,7 @@ python shiki/tools-skills/scripts/new_feature.py --taskid FEAT-001
 ```
 
 Then use prompts from `docs/CHEATSHEET.md` with your AI coding agent: `scan`,
-`new feature`, `status`, `apply`, `review`, and `modify`.
+`new feature`, `status`, `next`, `review`, `modify`, `sync`, and `doctor`.
 
 Publish a human-friendly L0 review site from Shiki L1 specs:
 

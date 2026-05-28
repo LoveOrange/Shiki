@@ -24,5 +24,5 @@ def get_feature_dir(feature_id):
 
 
 def resolve_code_contract(feature_dir):
-    """Return the active code contract path."""
+    """Return the optional implementation slice path."""
     return feature_dir / "code_contract.md"

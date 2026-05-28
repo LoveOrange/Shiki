@@ -3,8 +3,8 @@
 Local Init/scan execution queue: task routing plus output tracking. This is not
 long-lived phase progress; feature progress lives in `features/{feature}/_plan.md`.
 
-## Target Artifacts
+## Target Outputs
 
-| id | phase | kind | target | module | depends_on | contract | output_files |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| id | phase | target | module | depends_on | contract | output_files |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 <!-- scan.py writes init.entrance and init.sync tasks here. -->

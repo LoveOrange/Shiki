@@ -1,6 +1,6 @@
 # Module Plan: [ModuleName]
 
-Module-level task and artifact ledger.
+Module-level task and output ledger.
 
 ## Meta
 
@@ -8,7 +8,7 @@ Module-level task and artifact ledger.
 - **Module**: [ModuleName]
 - **Current Valid**: module baseline specs
 
-## Target Artifacts
+## Target Outputs
 
-| id | phase | kind | target | depends_on | contract | output_files |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| id | phase | target | depends_on | contract | output_files |
+| :--- | :--- | :--- | :--- | :--- | :--- |

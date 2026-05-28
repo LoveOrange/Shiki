@@ -1,7 +1,6 @@
 id: code_contract
 stage: Design
-kind: code_contract
-goal: Extract key facts from design artifacts into coding contract.
+goal: Optionally extract key facts from L2 AS-IS specs into a temporary implementation slice.
 inputs:
 - shiki_context/features/{feature}/modules/{module}/designs/model.md
 - shiki_context/features/{feature}/modules/{module}/designs/persistence.md
@@ -11,14 +10,16 @@ inputs:
 - shiki_context/features/{feature}/modules/{module}/flows/*.md
 references:
 - core-kernel/workflows/design/code_contract.md
-artifact:
+output:
   path: features/{feature}/code_contract.md
   mode: create
   template: core-kernel/templates/feature/code_contract.md
 checks:
-- all design artifacts exist
+- all design files exist
+- explicit reuse refs in §0 Baseline Delta are traceable when used
 done_condition:
-- code_contract.md created with sections 1-6 non-empty
+- code_contract.md created as an implementation slice with §1-§6 non-empty
+- Source Specs recorded
 - Contract Version set
 - all confirmation checkboxes initialized
 workflow_ref: core-kernel/workflows/design/code_contract.md

@@ -1,6 +1,6 @@
 # Project Plan
 
-Project-level task and artifact ledger. Record targets, dependencies, contracts,
+Project-level task and output ledger. Record targets, dependencies, contracts,
 and output files only.
 
 ## Meta
@@ -8,7 +8,7 @@ and output files only.
 - **Scope**: project
 - **Current Valid**: project baseline specs
 
-## Target Artifacts
+## Target Outputs
 
-| id | phase | kind | target | depends_on | contract | output_files |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| id | phase | target | depends_on | contract | output_files |
+| :--- | :--- | :--- | :--- | :--- | :--- |
