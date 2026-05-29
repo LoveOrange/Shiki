@@ -45,6 +45,40 @@ EXPECTED_CONTEXT_FILES = [
     "shiki_context/constitution/tech_contracts/java/ddd-spring/naming.md",
     "shiki_context/constitution/tech_contracts/java/ddd-spring/persistence.md",
 ]
+EXPECTED_ADAPTER_FILES = [
+    ".shiki/adapters/codex/manifest.json",
+    ".shiki/adapters/claude/manifest.json",
+    ".shiki/adapters/gemini/manifest.json",
+    ".shiki/adapters/opencode/manifest.json",
+    ".codex/prompts/shiki-init.md",
+    ".codex/prompts/shiki-status.md",
+    ".codex/prompts/shiki-next.md",
+    ".codex/prompts/shiki-modify.md",
+    ".codex/prompts/shiki-review.md",
+    ".codex/prompts/shiki-sync.md",
+    ".codex/prompts/shiki-doctor.md",
+    ".claude/commands/shiki-init.md",
+    ".claude/commands/shiki-status.md",
+    ".claude/commands/shiki-next.md",
+    ".claude/commands/shiki-modify.md",
+    ".claude/commands/shiki-review.md",
+    ".claude/commands/shiki-sync.md",
+    ".claude/commands/shiki-doctor.md",
+    ".gemini/commands/shiki-init.toml",
+    ".gemini/commands/shiki-status.toml",
+    ".gemini/commands/shiki-next.toml",
+    ".gemini/commands/shiki-modify.toml",
+    ".gemini/commands/shiki-review.toml",
+    ".gemini/commands/shiki-sync.toml",
+    ".gemini/commands/shiki-doctor.toml",
+    ".opencode/commands/shiki-init.md",
+    ".opencode/commands/shiki-status.md",
+    ".opencode/commands/shiki-next.md",
+    ".opencode/commands/shiki-modify.md",
+    ".opencode/commands/shiki-review.md",
+    ".opencode/commands/shiki-sync.md",
+    ".opencode/commands/shiki-doctor.md",
+]
 TEXT_SKIP_DIRS = {
     ".git",
     ".mypy_cache",
@@ -54,10 +88,6 @@ TEXT_SKIP_DIRS = {
 TEXT_SKIP_FILES = set()
 TEXT_SKIP_SUFFIXES = {".zip", ".pyc"}
 DISALLOWED_TEXT = [
-    "dry-run",
-    "dry_run",
-    "DRY RUN",
-    "--dry",
     "batch_analysis.py",
     "Context Engineering System",
     "design_plan.md",
@@ -399,6 +429,80 @@ def verify_fixture_workflow() -> None:
 
         # Init idempotency
         run([sys.executable, "shiki/tools-skills/scripts/init.py"], cwd=project, env=env)
+
+        adapter_dry_plan = subprocess.check_output(
+            [sys.executable, "shiki/tools-skills/scripts/install_agent_adapter.py", "--tool", "all", "--dry-run"],
+            cwd=str(project),
+            env=env,
+            text=True,
+        )
+        if "Would create" not in adapter_dry_plan or "Result: plan only" not in adapter_dry_plan:
+            raise AssertionError("adapter installer dry-run must print a write plan")
+        if (project / ".claude" / "commands" / "shiki-status.md").exists():
+            raise AssertionError("adapter installer dry-run must not write command files")
+
+        adapter_install = subprocess.check_output(
+            [sys.executable, "shiki/tools-skills/scripts/install_agent_adapter.py", "--tool", "all"],
+            cwd=str(project),
+            env=env,
+            text=True,
+        )
+        if "Created" not in adapter_install or "Blocked (0 files)" not in adapter_install:
+            raise AssertionError("adapter installer must report created and blocked file counts")
+        adapter_repeat = subprocess.check_output(
+            [sys.executable, "shiki/tools-skills/scripts/install_agent_adapter.py", "--tool", "all"],
+            cwd=str(project),
+            env=env,
+            text=True,
+        )
+        if "Skipped" not in adapter_repeat or "Result: adapter files installed" not in adapter_repeat:
+            raise AssertionError("adapter installer must be idempotent")
+        for relative in EXPECTED_ADAPTER_FILES:
+            require_file(project / relative)
+        adapter_text = "\n".join((project / relative).read_text(encoding="utf-8") for relative in EXPECTED_ADAPTER_FILES)
+        for needle in [
+            "adapter_contract_version",
+            "v1",
+            "/shiki-status",
+            "/shiki-next",
+            "/shiki-modify <target>",
+            "core-kernel/runtime/context_loading.md",
+            "core-kernel/runtime/task_contracts/",
+            "Shiki Adapter: managed",
+        ]:
+            if needle not in adapter_text:
+                raise AssertionError(f"installed adapter files missing expected content: {needle}")
+
+        outside_root = tmp / "outside-project"
+        outside_root.mkdir()
+        outside_result = subprocess.run(
+            [
+                sys.executable,
+                "shiki/tools-skills/scripts/install_agent_adapter.py",
+                "--tool",
+                "codex",
+                "--project-root",
+                str(outside_root),
+            ],
+            cwd=str(project),
+            env=env,
+            text=True,
+            capture_output=True,
+        )
+        if outside_result.returncode == 0 or "refusing to write outside the current project" not in outside_result.stderr:
+            raise AssertionError("adapter installer must refuse unsafe outside-project writes")
+
+        user_owned_command = project / ".claude" / "commands" / "shiki-status.md"
+        user_owned_command.write_text("user-owned command\n", encoding="utf-8")
+        blocked_result = subprocess.run(
+            [sys.executable, "shiki/tools-skills/scripts/install_agent_adapter.py", "--tool", "claude"],
+            cwd=str(project),
+            env=env,
+            text=True,
+            capture_output=True,
+        )
+        if blocked_result.returncode == 0 or "Blocked" not in blocked_result.stdout:
+            raise AssertionError("adapter installer must block existing non-managed command files")
 
         run([sys.executable, "shiki/tools-skills/scripts/scan.py", "--only", "s0.1"], cwd=project, env=env)
         run([sys.executable, "shiki/tools-skills/scripts/scan.py", "--only", "s0.2"], cwd=project, env=env)
