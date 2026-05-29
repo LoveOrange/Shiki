@@ -31,6 +31,42 @@ The command files set `disable-model-invocation: true` because Shiki commands
 should run only when the user or root session invokes the canonical command
 explicitly.
 
+## Command Happy Paths
+
+### `/shiki-status`
+
+The command loads the adapter contract, this adapter document,
+`core-kernel/runtime/context_loading.md`,
+`shiki_context/workspace/active_task.md`, and the current scope `_plan.md`.
+It reports the active scope, next runnable item, gate state, blockers, missing
+files, and confirms that no edits were made.
+
+### `/shiki-next`
+
+The root session loads the adapter contract, this adapter document,
+`core-kernel/runtime/context_loading.md`,
+`core-kernel/workflows/runner/next.md`, the active task, the current plan, and
+the selected task contract before any workflow text. The default execution mode
+is `single_item`.
+
+When the root session considers `bounded_batch`, `phase_wave`, or
+`subagent_delegation`, it must also load
+`core-kernel/workflows/runner/batch.md`, state the selected internal execution
+mode, and record the batch stop-condition check result before edits. The root
+session may call `shiki-phase-wave` only after it has prepared the complete root
+assignment described below. After the worker returns, the root session runs the
+verification command, updates `output_files` only for verified items, and stops
+on `BLOCKED`, `MANUAL_DECISION`, or `VERIFICATION_FAILED`.
+
+### `/shiki-modify <target>`
+
+The command requires the target argument from `$ARGUMENTS`, loads the adapter
+contract, this adapter document, `core-kernel/runtime/context_loading.md`, the
+active task, the current plan, and direct source/spec files related to the
+target. It makes only the bounded requested change, marks downstream completed
+items `STALE` only when the change affects them, and runs the smallest
+meaningful verification.
+
 ## Root-Controlled Orchestration
 
 The root Claude Code session owns:
@@ -52,9 +88,12 @@ Merge phase remains root-controlled by default.
 
 Before using the subagent, the root session must produce a root assignment with:
 
+- Selected internal execution mode, limited to `phase_wave` or
+  `subagent_delegation`.
 - Item id, stage, and target output files for each selected item.
 - Task contract path and `workflow_ref` for each item.
 - Dependency check result and direct context files for each item.
+- Batch stop-condition check result from `core-kernel/workflows/runner/batch.md`.
 - Verification command or check that the root session will run after the worker returns.
 
 If any required assignment field is missing, the subagent must return `BLOCKED`
@@ -66,6 +105,10 @@ Claude Code may delegate a Design or Code phase wave only when all of these are
 true:
 
 - The root session has selected the candidate items from the current plan.
+- The root session has loaded `core-kernel/workflows/runner/batch.md` and
+  recorded a clean batch stop-condition check result.
+- The selected internal execution mode is `phase_wave` or
+  `subagent_delegation`.
 - Every item is in Design or Code.
 - Every item has satisfied dependencies.
 - Every item has a task contract path under `core-kernel/runtime/task_contracts/`.
