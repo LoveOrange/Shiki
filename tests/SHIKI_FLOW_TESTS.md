@@ -118,3 +118,12 @@ When `python shiki/tools-skills/scripts/install_agent_adapter.py --tool all` run
 Then Codex, Claude Code, Gemini CLI, and OpenCode project-local command files are created
 And repeated installer runs skip matching Shiki-managed files without duplicates
 And `/shiki-next` remains the user-facing command while bounded batch, phase-wave, and subagent execution stay internal strategies.
+
+## HIT-015 Claude Code Phase-Wave Adapter
+
+Given the Claude Code adapter is installed into a consumer project
+When `/shiki-next` considers phase-wave or subagent delegation
+Then `.claude/commands/shiki-next.md` keeps the root session responsible for plan state, dependency checks, `output_files`, and verification
+And `.claude/commands/shiki-modify.md` exposes `argument-hint: <target>`
+And `.claude/agents/shiki-phase-wave.md` requires a root assignment before edits
+And the worker refuses Merge, plan-state updates, missing assignment fields, ambiguous ownership, and failed verification.

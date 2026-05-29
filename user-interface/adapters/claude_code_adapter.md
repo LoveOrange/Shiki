@@ -6,6 +6,10 @@ The Claude Code adapter exposes the canonical Shiki commands as project slash
 commands under `.claude/commands/` and installs an optional project subagent at
 `.claude/agents/shiki-phase-wave.md`.
 
+Claude Code treats project command files as custom commands. Each generated
+command includes frontmatter with a `description`; `/shiki-modify` also includes
+`argument-hint: <target>` so the target argument is visible at invocation time.
+
 This adapter follows `user-interface/adapters/tool_adapter_contract_v1.md`.
 Shiki Core remains the source of truth for plan routing, task contracts,
 workflow binding, context loading, evidence, and gate state.
@@ -22,6 +26,10 @@ workflow binding, context loading, evidence, and gate state.
 | `.claude/commands/shiki-sync.md` | Plan and apply bounded Code -> Spec sync. |
 | `.claude/commands/shiki-doctor.md` | Diagnose or repair context-store structure. |
 | `.claude/agents/shiki-phase-wave.md` | Optional Design/Code wave worker used only by the root session. |
+
+The command files set `disable-model-invocation: true` because Shiki commands
+should run only when the user or root session invokes the canonical command
+explicitly.
 
 ## Root-Controlled Orchestration
 
@@ -42,6 +50,16 @@ assigned by the root session and return evidence.
 
 Merge phase remains root-controlled by default.
 
+Before using the subagent, the root session must produce a root assignment with:
+
+- Item id, stage, and target output files for each selected item.
+- Task contract path and `workflow_ref` for each item.
+- Dependency check result and direct context files for each item.
+- Verification command or check that the root session will run after the worker returns.
+
+If any required assignment field is missing, the subagent must return `BLOCKED`
+without editing files.
+
 ## Delegation Rules
 
 Claude Code may delegate a Design or Code phase wave only when all of these are
@@ -58,6 +76,10 @@ true:
 
 When any condition is false, `/shiki-next` must run as `single_item` or return
 the appropriate `BLOCKED` or `MANUAL_DECISION` report.
+
+After the worker returns, the root session verifies the changed files, updates
+`output_files` only for verified items, and reports any `VERIFICATION_FAILED`
+state without continuing to later items.
 
 ## When Subagents Help
 

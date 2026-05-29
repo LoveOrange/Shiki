@@ -293,6 +293,7 @@ def verify_core_consistency() -> None:
         "phase-wave",
         "internal strategy",
         "HIT-014 Adapter Install And Commands",
+        "HIT-015 Claude Code Phase-Wave Adapter",
     ]:
         if needle not in docs_text:
             raise AssertionError(f"adapter workflow docs missing expected content: {needle}")
@@ -377,6 +378,9 @@ def verify_core_consistency() -> None:
     for needle in [
         ".claude/commands/",
         ".claude/agents/shiki-phase-wave.md",
+        "disable-model-invocation: true",
+        "argument-hint: <target>",
+        "root assignment",
         "Design or Code phase wave",
         "Merge phase remains root-controlled",
         "The `shiki-phase-wave` subagent must not select its own plan items",
@@ -565,6 +569,10 @@ def verify_fixture_workflow() -> None:
             "/shiki-modify <target>",
             "shiki-phase-wave",
             "Merge phase remains root-controlled",
+            "disable-model-invocation: true",
+            "argument-hint: <target>",
+            "Required root assignment",
+            "tools: Read, Grep, Glob, Bash, Edit, Write",
             "AGENTS.md",
             "bounded_batch",
             ".codex/skills/shiki/SKILL.md",

@@ -279,16 +279,25 @@ def command_prompt(command: dict, source_root: str, arg_token: str) -> str:
 
 def claude_command_prompt(command: dict, source_root: str, arg_token: str) -> str:
     prompt = command_prompt(command, source_root, arg_token)
-    if command["name"] != "shiki-next":
-        return prompt
-    return (
-        prompt
-        + "\nClaude Code adapter notes:\n"
-        + f"- Also load {source_root}/{CLAUDE_ADAPTER_PATH} before considering delegation.\n"
-        + "- Keep the root Claude Code session responsible for plan state, dependency order, output_files updates, and verification.\n"
-        + "- Use the shiki-phase-wave subagent only for bounded Design or Code phase waves selected by the root session.\n"
-        + "- Do not delegate Merge; Merge phase remains root-controlled by default.\n"
+    notes = (
+        "\nClaude Code adapter notes:\n"
+        f"- Also load {source_root}/{CLAUDE_ADAPTER_PATH}.\n"
+        "- Treat this file as a project-local Claude Code custom command; keep the command body thin and defer workflow rules to Shiki Core.\n"
     )
+    if command["name"] == "shiki-modify":
+        notes += "- Treat $ARGUMENTS as the required /shiki-modify <target> argument text; return BLOCKED when the target is missing or ambiguous.\n"
+    if command["name"] != "shiki-next":
+        return prompt + notes
+    notes += (
+        "- Default to single_item mode and state the selected execution mode before edits.\n"
+        "- Use bounded_batch, phase_wave, or subagent_delegation only when core-kernel/workflows/runner/batch.md allows every claimed item and all stop conditions are clear.\n"
+        "- Keep the root Claude Code session responsible for plan state, dependency order, output_files updates, and verification.\n"
+        "- Before delegation, prepare a root assignment that lists each item id, stage, target, task contract, workflow_ref, dependencies checked, direct context files, and verification command.\n"
+        "- Use the shiki-phase-wave subagent only for bounded Design or Code phase waves selected by the root session.\n"
+        "- After a subagent returns, verify each item in root context and update output_files only for verified items.\n"
+        "- Do not delegate Merge; Merge phase remains root-controlled by default.\n"
+    )
+    return prompt + notes
 
 
 def codex_command_prompt(command: dict, source_root: str, arg_token: str) -> str:
@@ -357,6 +366,19 @@ def opencode_command_content(tool: str, command: dict, source_root: str, arg_tok
     )
 
 
+def claude_command_content(tool: str, command: dict, source_root: str, arg_token: str) -> str:
+    marker = f"<!-- {MANAGED_MARKER}; contract={CONTRACT_VERSION}; tool={tool}; command={command['canonical']} -->"
+    frontmatter = [
+        "---",
+        f"description: {command['description']}",
+        "disable-model-invocation: true",
+    ]
+    if command["name"] == "shiki-modify":
+        frontmatter.append("argument-hint: <target>")
+    frontmatter.append("---")
+    return "\n".join(frontmatter) + f"\n{marker}\n\n{claude_command_prompt(command, source_root, arg_token)}"
+
+
 def markdown_content(tool: str, command: dict, source_root: str, arg_token: str, frontmatter: bool) -> str:
     marker = f"<!-- {MANAGED_MARKER}; contract={CONTRACT_VERSION}; tool={tool}; command={command['canonical']} -->"
     if tool == "codex":
@@ -412,6 +434,8 @@ def render_command_file(tool_key: str, spec: dict, command: dict, source_root: s
         return gemini_toml_content(tool_key, command, source_root, spec["arg_token"])
     if spec["format"] == "opencode_markdown":
         return opencode_command_content(tool_key, command, source_root, spec["arg_token"])
+    if tool_key == "claude":
+        return claude_command_content(tool_key, command, source_root, spec["arg_token"])
     return markdown_content(tool_key, command, source_root, spec["arg_token"], frontmatter=False)
 
 
@@ -420,15 +444,27 @@ def claude_phase_wave_agent_content(source_root: str) -> str:
         "---\n"
         "name: shiki-phase-wave\n"
         "description: Use only when the root Shiki session delegates a bounded Design or Code phase wave after checking dependencies and stop conditions.\n"
+        "tools: Read, Grep, Glob, Bash, Edit, Write\n"
+        "model: inherit\n"
         "---\n"
         f"<!-- {MANAGED_MARKER}; contract={CONTRACT_VERSION}; tool=claude; agent=shiki-phase-wave -->\n\n"
         "You are the Shiki phase-wave worker for Claude Code.\n\n"
+        "Required root assignment:\n"
+        "- item_ids\n"
+        "- phase for each item, limited to Design or Code\n"
+        "- target output files for each item\n"
+        "- task contract path for each item\n"
+        "- workflow_ref for each item\n"
+        "- dependency check result for each item\n"
+        "- direct context files allowed for each item\n"
+        "- verification command or check requested by the root session\n\n"
         "Load before working:\n"
         f"- {source_root}/{CONTRACT_PATH}\n"
         f"- {source_root}/{CLAUDE_ADAPTER_PATH}\n"
         "- The task contract and workflow paths explicitly assigned by the root session.\n"
         "- Only the direct source/spec context explicitly assigned by the root session.\n\n"
         "Rules:\n"
+        "- If any required root assignment field is missing, return BLOCKED without edits.\n"
         "- Work only on Design or Code items explicitly assigned by the root session.\n"
         "- Do not select plan items yourself.\n"
         "- Do not edit _plan.md, output_files, active_task.md, sync_plan.md, or doctor_plan.md.\n"
