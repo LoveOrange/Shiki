@@ -64,6 +64,7 @@ EXPECTED_ADAPTER_FILES = [
     ".claude/commands/shiki-review.md",
     ".claude/commands/shiki-sync.md",
     ".claude/commands/shiki-doctor.md",
+    ".claude/agents/shiki-phase-wave.md",
     ".gemini/commands/shiki-init.toml",
     ".gemini/commands/shiki-status.toml",
     ".gemini/commands/shiki-next.toml",
@@ -189,6 +190,7 @@ def verify_core_consistency() -> None:
     phase_contract = (ROOT / "core-kernel/runtime/phase_contract.md").read_text(encoding="utf-8")
     context_loading = (ROOT / "core-kernel/runtime/context_loading.md").read_text(encoding="utf-8")
     adapter_contract = (ROOT / "user-interface" / "adapters" / "tool_adapter_contract_v1.md").read_text(encoding="utf-8")
+    claude_adapter = (ROOT / "user-interface" / "adapters" / "claude_code_adapter.md").read_text(encoding="utf-8")
     runner_next = (ROOT / "core-kernel" / "workflows" / "runner" / "next.md").read_text(encoding="utf-8")
     runner_apply = (ROOT / "core-kernel" / "workflows" / "runner" / "apply.md").read_text(encoding="utf-8")
     runner_batch = (ROOT / "core-kernel" / "workflows" / "runner" / "batch.md").read_text(encoding="utf-8")
@@ -310,6 +312,17 @@ def verify_core_consistency() -> None:
     ]:
         if core_ref not in adapter_contract:
             raise AssertionError(f"adapter contract missing Core Kernel reference: {core_ref}")
+    for needle in [
+        ".claude/commands/",
+        ".claude/agents/shiki-phase-wave.md",
+        "Design or Code phase wave",
+        "Merge phase remains root-controlled",
+        "The `shiki-phase-wave` subagent must not select its own plan items",
+        "context limits",
+        "unsafe",
+    ]:
+        if needle not in claude_adapter:
+            raise AssertionError(f"Claude adapter doc missing expected guidance: {needle}")
 
     # Feature overlay specs must carry explicit baseline delta metadata for merge.
     delta_types = ["reuse", "add", "extend", "modify", "deprecate"]
@@ -466,6 +479,8 @@ def verify_fixture_workflow() -> None:
             "/shiki-status",
             "/shiki-next",
             "/shiki-modify <target>",
+            "shiki-phase-wave",
+            "Merge phase remains root-controlled",
             "core-kernel/runtime/context_loading.md",
             "core-kernel/runtime/task_contracts/",
             "Shiki Adapter: managed",

@@ -17,6 +17,7 @@ from pathlib import Path
 CONTRACT_VERSION = "v1"
 MANAGED_MARKER = "Shiki Adapter: managed by tools-skills/scripts/install_agent_adapter.py"
 CONTRACT_PATH = "user-interface/adapters/tool_adapter_contract_v1.md"
+CLAUDE_ADAPTER_PATH = "user-interface/adapters/claude_code_adapter.md"
 CONTEXT_ROOT = "shiki_context"
 COMMANDS = [
     {
@@ -160,6 +161,7 @@ TOOL_SPECS = {
         "extension": ".md",
         "format": "markdown",
         "arg_token": "$ARGUMENTS",
+        "agent_files": [".claude/agents/shiki-phase-wave.md"],
         "capabilities": {
             "supports_slash_commands": True,
             "supports_skills": False,
@@ -266,9 +268,26 @@ def command_prompt(command: dict, source_root: str, arg_token: str) -> str:
     )
 
 
+def claude_command_prompt(command: dict, source_root: str, arg_token: str) -> str:
+    prompt = command_prompt(command, source_root, arg_token)
+    if command["name"] != "shiki-next":
+        return prompt
+    return (
+        prompt
+        + "\nClaude Code adapter notes:\n"
+        + f"- Also load {source_root}/{CLAUDE_ADAPTER_PATH} before considering delegation.\n"
+        + "- Keep the root Claude Code session responsible for plan state, dependency order, output_files updates, and verification.\n"
+        + "- Use the shiki-phase-wave subagent only for bounded Design or Code phase waves selected by the root session.\n"
+        + "- Do not delegate Merge; Merge phase remains root-controlled by default.\n"
+    )
+
+
 def markdown_content(tool: str, command: dict, source_root: str, arg_token: str, frontmatter: bool) -> str:
     marker = f"<!-- {MANAGED_MARKER}; contract={CONTRACT_VERSION}; tool={tool}; command={command['canonical']} -->"
-    prompt = command_prompt(command, source_root, arg_token)
+    if tool == "claude":
+        prompt = claude_command_prompt(command, source_root, arg_token)
+    else:
+        prompt = command_prompt(command, source_root, arg_token)
     if frontmatter:
         return (
             "---\n"
@@ -304,6 +323,7 @@ def manifest_content(tool_key: str, spec: dict, source_root: str) -> str:
         "command_files": [
             f"{spec['command_dir']}/{command['name']}{spec['extension']}" for command in COMMANDS
         ],
+        "agent_files": spec.get("agent_files", []),
         "adapter_key": tool_key,
     }
     return json.dumps(data, indent=2, sort_keys=True) + "\n"
@@ -315,6 +335,38 @@ def render_command_file(tool_key: str, spec: dict, command: dict, source_root: s
     if spec["format"] == "opencode_markdown":
         return markdown_content(tool_key, command, source_root, spec["arg_token"], frontmatter=True)
     return markdown_content(tool_key, command, source_root, spec["arg_token"], frontmatter=False)
+
+
+def claude_phase_wave_agent_content(source_root: str) -> str:
+    return (
+        "---\n"
+        "name: shiki-phase-wave\n"
+        "description: Use only when the root Shiki session delegates a bounded Design or Code phase wave after checking dependencies and stop conditions.\n"
+        "---\n"
+        f"<!-- {MANAGED_MARKER}; contract={CONTRACT_VERSION}; tool=claude; agent=shiki-phase-wave -->\n\n"
+        "You are the Shiki phase-wave worker for Claude Code.\n\n"
+        "Load before working:\n"
+        f"- {source_root}/{CONTRACT_PATH}\n"
+        f"- {source_root}/{CLAUDE_ADAPTER_PATH}\n"
+        "- The task contract and workflow paths explicitly assigned by the root session.\n"
+        "- Only the direct source/spec context explicitly assigned by the root session.\n\n"
+        "Rules:\n"
+        "- Work only on Design or Code items explicitly assigned by the root session.\n"
+        "- Do not select plan items yourself.\n"
+        "- Do not edit _plan.md, output_files, active_task.md, sync_plan.md, or doctor_plan.md.\n"
+        "- Do not run Merge or baseline writes.\n"
+        "- Load each assigned item task contract before its workflow text.\n"
+        "- Preserve per-item boundaries even when several items are delegated together.\n"
+        "- Stop immediately on BLOCKED, MANUAL_DECISION, missing input, ambiguous ownership, or failed verification.\n"
+        "- Return evidence to the root session instead of marking plan items done.\n\n"
+        "Return shape:\n"
+        "- completed_item_ids\n"
+        "- blocked_item_id, if any\n"
+        "- files_changed\n"
+        "- verification_run\n"
+        "- verification_result\n"
+        "- required_root_action\n"
+    )
 
 
 def write_managed_file(path: Path, content: str, project_root: Path, report: InstallReport, dry_run: bool) -> None:
@@ -365,6 +417,15 @@ def install_tool(tool_key: str, project_root: Path, source_root: str, dry_run: b
             report,
             dry_run,
         )
+    if tool_key == "claude":
+        for relative in spec.get("agent_files", []):
+            write_managed_file(
+                project_root / relative,
+                claude_phase_wave_agent_content(source_root),
+                project_root,
+                report,
+                dry_run,
+            )
     return report
 
 
