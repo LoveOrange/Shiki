@@ -306,14 +306,20 @@ def codex_command_prompt(command: dict, source_root: str, arg_token: str) -> str
     notes = (
         "\nCodex adapter notes:\n"
         f"- Also load {source_root}/{CODEX_ADAPTER_PATH}.\n"
+        "- Treat this file as a project-local Codex prompt for the canonical command named above.\n"
         "- Respect applicable AGENTS.md instructions before running this command.\n"
         "- Keep command bodies thin by loading Shiki Core Kernel docs and task contracts instead of duplicating workflow logic.\n"
     )
+    if command["name"] == "shiki-status":
+        notes += "- Keep this command read-only and confirm no edits were made.\n"
     if command["name"] == "shiki-next":
         notes += (
             "- Default to single_item mode.\n"
             "- Use bounded_batch only when core-kernel/workflows/runner/batch.md allows every claimed item and all stop conditions are clear.\n"
+            "- State the selected internal execution mode before edits and update output_files only after verification passes.\n"
         )
+    if command["name"] == "shiki-modify":
+        notes += "- Treat $ARGUMENTS as the required /shiki-modify <target> target and requested change text; return BLOCKED when the target is missing or ambiguous.\n"
     return prompt + notes
 
 
@@ -489,7 +495,7 @@ def claude_phase_wave_agent_content(source_root: str) -> str:
 
 
 def codex_skill_content(source_root: str) -> str:
-    commands = ", ".join(command["canonical"] for command in COMMANDS)
+    command_lines = "\n".join(f"- {command['canonical']}" for command in COMMANDS)
     return (
         "---\n"
         "name: shiki\n"
@@ -498,12 +504,21 @@ def codex_skill_content(source_root: str) -> str:
         "# Shiki Codex Skill\n\n"
         f"{MANAGED_MARKER}; contract={CONTRACT_VERSION}; tool=codex; skill=shiki\n\n"
         "Use this skill for these canonical commands:\n\n"
-        f"{commands}\n\n"
+        f"{command_lines}\n\n"
+        "Codex skill command dispatch:\n"
+        "- Match the user's canonical /shiki-* command to the command contract with the same name.\n"
+        "- Load the adapter contract before command-specific runtime files.\n"
+        "- Use the project-local prompt files under .codex/prompts/ as generated command bodies when the host Codex build exposes them.\n"
+        "- When prompt files are not exposed directly, run the same command through this skill.\n\n"
         "Required first reads:\n"
         "- Applicable AGENTS.md files for the current workspace scope.\n"
         f"- {source_root}/{CONTRACT_PATH}\n"
         f"- {source_root}/{CODEX_ADAPTER_PATH}\n"
         "- shiki_context/workspace/active_task.md when the command needs active Shiki state.\n\n"
+        "Happy paths:\n"
+        "- /shiki-status: load context_loading.md, active_task.md, and the current _plan.md; report scope, next runnable item, gates, blockers, and confirm no edits.\n"
+        "- /shiki-next: load runner/next.md, the current plan, the selected task contract, and its workflow_ref; default to single_item and update output_files only after verification passes.\n"
+        "- /shiki-modify <target>: treat $ARGUMENTS as the required target and requested change text; return BLOCKED when missing or ambiguous; edit only the bounded target and verify.\n\n"
         "Rules:\n"
         "- Respect AGENTS.md and project-level Shiki rules.\n"
         "- Treat Shiki Core Kernel as the source of truth for routing, task contracts, workflow binding, context loading, evidence, and gate state.\n"

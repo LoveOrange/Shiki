@@ -42,6 +42,53 @@ If the host Codex build does not load project prompt files directly, the
 project-local skill still provides equivalent native activation: ask Codex to
 use the Shiki skill and the same canonical command name.
 
+## Native Activation
+
+Codex has two project-local entry points after install:
+
+- Slash-style command prompts from `.codex/prompts/shiki-*.md`.
+- The reusable project skill at `.codex/skills/shiki/SKILL.md`.
+
+Both surfaces must dispatch to the same canonical command names and load
+`user-interface/adapters/tool_adapter_contract_v1.md` before command-specific
+runtime files. The skill is the fallback native surface when the host Codex
+build does not expose project prompt files as slash commands.
+
+Codex must read applicable `AGENTS.md` files before command execution and apply
+those instructions alongside this adapter document. When instructions conflict,
+project-level Shiki and Codex rules that preserve user work, dependency order,
+and verification take precedence over generated prompt convenience text.
+
+## Command Happy Paths
+
+### `/shiki-status`
+
+Codex loads the adapter contract, this adapter document,
+`core-kernel/runtime/context_loading.md`,
+`shiki_context/workspace/active_task.md`, and the current scope `_plan.md`.
+It reports active scope, next runnable item, gate state, blockers, missing
+files, and confirms that no edits were made.
+
+### `/shiki-next`
+
+Codex loads the adapter contract, this adapter document,
+`core-kernel/runtime/context_loading.md`,
+`core-kernel/workflows/runner/next.md`, the active task, the current plan, and
+the selected task contract before workflow text. It states the selected internal
+execution mode before edits, defaults to `single_item`, updates `output_files`
+only after verification passes, and stops on the adapter contract stop
+conditions.
+
+### `/shiki-modify <target>`
+
+Codex treats `$ARGUMENTS` as the required target and requested change text. It
+loads the adapter contract, this adapter document,
+`core-kernel/runtime/context_loading.md`, the active task, the current plan, and
+direct source/spec files related to the target. It returns `BLOCKED` when the
+target is missing or ambiguous, edits only the requested bounded target, marks
+downstream completed items `STALE` only when affected, and runs the smallest
+meaningful verification.
+
 ## `/shiki-next` Selection
 
 Codex runs `/shiki-next` in `single_item` mode by default:
@@ -64,3 +111,16 @@ failed verification.
 When those conditions are not satisfied, Codex must stay in `single_item` mode
 or return the adapter contract's `BLOCKED`, `MANUAL_DECISION`, or
 `VERIFICATION_FAILED` report.
+
+## Verification
+
+Regression checks should install the Codex adapter into a sample project and
+verify:
+
+- `.codex/prompts/shiki-status.md`, `.codex/prompts/shiki-next.md`, and
+  `.codex/prompts/shiki-modify.md` exist.
+- `.codex/skills/shiki/SKILL.md` exists and lists the same canonical commands.
+- Generated Codex files reference this adapter document, the adapter contract,
+  applicable `AGENTS.md` rules, and Core Kernel runtime docs.
+- `/shiki-modify <target>` generated content forwards `$ARGUMENTS` and blocks
+  missing or ambiguous targets.
