@@ -532,6 +532,28 @@ def verify_fixture_workflow() -> None:
         )
         if "Skipped" not in adapter_repeat or "Result: adapter files installed" not in adapter_repeat:
             raise AssertionError("adapter installer must be idempotent")
+        managed_command = project / ".codex" / "prompts" / "shiki-next.md"
+        managed_command.write_text("Shiki Adapter: managed by tools-skills/scripts/install_agent_adapter.py\nstale managed content\n", encoding="utf-8")
+        update_plan = subprocess.check_output(
+            [sys.executable, "shiki/tools-skills/scripts/install_agent_adapter.py", "--tool", "codex", "--dry-run"],
+            cwd=str(project),
+            env=env,
+            text=True,
+        )
+        if "Would update" not in update_plan or "shiki-next.md" not in update_plan:
+            raise AssertionError("adapter installer dry-run must report managed-file updates")
+        if "stale managed content" not in managed_command.read_text(encoding="utf-8"):
+            raise AssertionError("adapter installer dry-run must not update managed files")
+        update_result = subprocess.check_output(
+            [sys.executable, "shiki/tools-skills/scripts/install_agent_adapter.py", "--tool", "codex"],
+            cwd=str(project),
+            env=env,
+            text=True,
+        )
+        if "Updated" not in update_result or "shiki-next.md" not in update_result:
+            raise AssertionError("adapter installer must report updated managed files")
+        if "stale managed content" in managed_command.read_text(encoding="utf-8"):
+            raise AssertionError("adapter installer must refresh stale managed files")
         for relative in EXPECTED_ADAPTER_FILES:
             require_file(project / relative)
         adapter_text = "\n".join((project / relative).read_text(encoding="utf-8") for relative in EXPECTED_ADAPTER_FILES)
