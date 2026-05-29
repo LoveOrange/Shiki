@@ -7,6 +7,7 @@ shim, and verifies the filesystem-level workflow.
 """
 
 import os
+import json
 import re
 import shutil
 import stat
@@ -14,6 +15,7 @@ import subprocess
 import sys
 import tempfile
 import textwrap
+import tomllib
 from pathlib import Path
 
 
@@ -364,6 +366,11 @@ def verify_core_consistency() -> None:
         "core-kernel/runtime/context_loading.md",
         "`bounded_batch`",
         "project-local `.gemini/commands/*.toml`",
+        "Command Happy Paths",
+        "`prompt` field",
+        "`/commands reload`",
+        "Return `BLOCKED` when `{{args}}` is empty",
+        "Gemini CLI has no Shiki subagent",
     ]:
         if needle not in gemini_adapter:
             raise AssertionError(f"Gemini adapter doc missing expected guidance: {needle}")
@@ -599,6 +606,47 @@ def verify_fixture_workflow() -> None:
         ]:
             if needle not in adapter_text:
                 raise AssertionError(f"installed adapter files missing expected content: {needle}")
+
+        gemini_manifest = json.loads((project / ".shiki" / "adapters" / "gemini" / "manifest.json").read_text(encoding="utf-8"))
+        if gemini_manifest["tool"] != "gemini-cli":
+            raise AssertionError("Gemini manifest must identify gemini-cli")
+        if gemini_manifest["execution_modes"] != ["single_item", "bounded_batch"]:
+            raise AssertionError("Gemini manifest must expose only single_item and bounded_batch modes")
+        if not gemini_manifest["capabilities"]["supports_project_local_install"]:
+            raise AssertionError("Gemini manifest must support project-local install")
+        if ".gemini/commands/shiki-modify.toml" not in gemini_manifest["command_files"]:
+            raise AssertionError("Gemini manifest missing shiki-modify command file")
+
+        gemini_command_expectations = {
+            "shiki-status": [
+                "core-kernel/runtime/context_loading.md",
+                "shiki_context/workspace/active_task.md",
+                "Keep this command read-only and confirm no edits were made.",
+            ],
+            "shiki-next": [
+                "core-kernel/workflows/runner/next.md",
+                "core-kernel/runtime/task_contracts/",
+                "state the selected internal execution mode before edits",
+                "Load core-kernel/workflows/runner/batch.md before selecting bounded_batch",
+                "Gemini CLI has no Shiki subagent surface",
+            ],
+            "shiki-modify": [
+                "{{args}}",
+                "Return BLOCKED when {{args}} is empty, missing a target, or ambiguous.",
+                "direct specs and source files related to the target",
+            ],
+        }
+        for command_name, expectations in gemini_command_expectations.items():
+            command_path = project / ".gemini" / "commands" / f"{command_name}.toml"
+            command_data = tomllib.loads(command_path.read_text(encoding="utf-8"))
+            if sorted(command_data.keys()) != ["description", "prompt"]:
+                raise AssertionError(f"{command_path.relative_to(project)} must contain only description and prompt")
+            prompt = command_data["prompt"]
+            if "shiki/user-interface/adapters/gemini_cli_adapter.md" not in prompt:
+                raise AssertionError(f"{command_path.relative_to(project)} missing Gemini adapter reference")
+            for expectation in expectations:
+                if expectation not in prompt:
+                    raise AssertionError(f"{command_path.relative_to(project)} missing expected prompt content: {expectation}")
 
         outside_root = tmp / "outside-project"
         outside_root.mkdir()
