@@ -1020,6 +1020,10 @@ def verify_pretty_shiki_spec() -> None:
             "Open Placeholders",
             "[ ]",
             "--nav:",
+            "table-layout: fixed",
+            "table-scroll",
+            "overflow-wrap: anywhere",
+            "white-space: normal",
         ]:
             if needle not in readme_html + overview_html + contract_html + gaps_html + css:
                 raise AssertionError(f"pretty Shiki spec missing expected content: {needle}")

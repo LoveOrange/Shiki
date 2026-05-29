@@ -248,6 +248,7 @@ article {
   border-radius: 8px;
   background: var(--paper);
   box-shadow: 0 18px 48px rgb(32 37 47 / 10%);
+  overflow-wrap: break-word;
   padding: clamp(24px, 4vw, 48px);
 }
 article > *:first-child { margin-top: 0; }
@@ -316,6 +317,7 @@ hr {
 }
 table {
   width: 100%;
+  max-width: 100%;
   border-collapse: separate;
   border-spacing: 0;
   margin: 16px 0 24px;
@@ -323,6 +325,26 @@ table {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--paper-strong);
+  table-layout: fixed;
+}
+.table-scroll {
+  width: 100%;
+  max-width: 100%;
+  margin: 16px 0 24px;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper-strong);
+}
+.table-scroll table {
+  width: max-content;
+  min-width: 100%;
+  max-width: none;
+  margin: 0;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  table-layout: auto;
 }
 th,
 td {
@@ -331,6 +353,17 @@ td {
   padding: 10px 12px;
   text-align: left;
   vertical-align: top;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+.table-scroll th,
+.table-scroll td {
+  min-width: 136px;
+  max-width: 360px;
+}
+.table-scroll th:first-child,
+.table-scroll td:first-child {
+  min-width: 112px;
 }
 th:last-child,
 td:last-child { border-right: 0; }
@@ -341,9 +374,18 @@ th {
   font-size: 12px;
   font-weight: 800;
   letter-spacing: 0;
+  line-height: 1.35;
   text-transform: uppercase;
 }
 td { color: #333b4b; }
+th a,
+td a,
+th code,
+td code {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: normal;
+}
 td:first-child code,
 td:nth-child(2) code {
   color: #0a4f49;
@@ -539,8 +581,7 @@ pre code {
   .view-controls { display: none; }
   .content { padding: 24px 14px 52px; }
   article { padding: 22px 16px; }
-  table { display: block; overflow-x: auto; }
-  th, td { min-width: 130px; }
+  th, td { min-width: 0; }
 }
 """
 
@@ -1350,8 +1391,18 @@ def load_spec_to_html_module():
     return module
 
 
+def install_pretty_table_renderer(publisher) -> None:
+    original_render_table = publisher.render_table
+
+    def render_pretty_table(lines, source, ctx):
+        return '<div class="table-scroll">' + original_render_table(lines, source, ctx) + "</div>"
+
+    publisher.render_table = render_pretty_table
+
+
 def render_html_site(source_paths: list[Path], source_dir: Path, output_dir: Path, title: str, fail_on_broken_links: bool) -> int:
     publisher = load_spec_to_html_module()
+    install_pretty_table_renderer(publisher)
     publisher.write_assets(
         publisher.RenderContext(
             title=title,
