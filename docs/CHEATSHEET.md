@@ -1,12 +1,50 @@
-# Shiki Prompt Cheatsheet
+# Shiki Command Cheatsheet
 
-Copy the relevant prompt into your AI coding agent. Paths assume Shiki is mounted
-as `shiki/` in the consumer project.
+Install a project-local adapter first when your coding tool supports it. Paths
+assume Shiki is mounted as `shiki/` in the consumer project.
 
-`next` advances the current plan by one ready item. `batch` / `auto` lets a
-strong coding agent claim several safe ready items while preserving per-item
-contracts and outputs. `apply` is kept as a compatibility entry with the same
-current behavior as `next`.
+```bash
+python shiki/tools-skills/scripts/install_agent_adapter.py --tool all
+```
+
+Use a single target to install one adapter:
+
+```bash
+python shiki/tools-skills/scripts/install_agent_adapter.py --tool codex
+python shiki/tools-skills/scripts/install_agent_adapter.py --tool claude
+python shiki/tools-skills/scripts/install_agent_adapter.py --tool gemini
+python shiki/tools-skills/scripts/install_agent_adapter.py --tool opencode
+```
+
+Primary tool-native commands:
+
+```text
+/shiki-init
+/shiki-status
+/shiki-next
+/shiki-modify <target>
+/shiki-review
+/shiki-sync
+/shiki-doctor
+```
+
+Generated project-local files:
+
+| tool | command files | extra files |
+| :--- | :--- | :--- |
+| Codex | `.codex/prompts/shiki-*.md` | `.codex/skills/shiki/SKILL.md` |
+| Claude Code | `.claude/commands/shiki-*.md` | `.claude/agents/shiki-phase-wave.md` |
+| Gemini CLI | `.gemini/commands/shiki-*.toml` | - |
+| OpenCode | `.opencode/commands/shiki-*.md` | `.opencode/agents/shiki-*.md` |
+
+`/shiki-next` is the user-facing runner. It advances conservatively by one ready
+item by default. Strong adapters may use bounded batch, phase-wave, or subagent
+execution internally only when Core Kernel stop rules allow it; each selected
+item still loads its own task contract and updates its own `output_files` only
+after verification passes. Merge remains root-controlled by default.
+
+The prompt blocks below are fallback entries for agents without an installed
+adapter or for manually inspecting adapter behavior.
 
 ## 1. scan
 
@@ -101,7 +139,9 @@ Steps:
 
 ## 4b. batch
 
-Execute a bounded sequence of safe ready plan items.
+Fallback/internal entry for a bounded sequence of safe ready plan items. With
+tool-native adapters, batch execution is an internal strategy behind
+`/shiki-next`, not a primary user-facing command.
 
 ```text
 Use Shiki batch.

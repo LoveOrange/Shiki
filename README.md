@@ -60,9 +60,40 @@ Create a feature workspace:
 python shiki/tools-skills/scripts/new_feature.py --taskid FEAT-001
 ```
 
-Then use prompts from `docs/CHEATSHEET.md` with your AI coding agent: `scan`,
-`new feature`, `status`, `next`, `batch`, `review`, `modify`, `sync`, and
-`doctor`.
+Then install project-local tool-native adapters and use the canonical Shiki slash
+commands directly:
+
+```bash
+python shiki/tools-skills/scripts/install_agent_adapter.py --tool all
+```
+
+Use a single tool target when needed:
+
+```bash
+python shiki/tools-skills/scripts/install_agent_adapter.py --tool codex
+python shiki/tools-skills/scripts/install_agent_adapter.py --tool claude
+python shiki/tools-skills/scripts/install_agent_adapter.py --tool gemini
+python shiki/tools-skills/scripts/install_agent_adapter.py --tool opencode
+```
+
+After install, the primary command surface is:
+
+```text
+/shiki-status
+/shiki-next
+/shiki-modify <target>
+/shiki-review
+/shiki-sync
+/shiki-doctor
+```
+
+`/shiki-next` is the user-facing runner. Strong adapters may use bounded batch
+or phase-wave execution internally when Core Kernel stop rules allow it, but
+plan state, task contracts, `output_files`, and verification remain controlled
+by Shiki Core.
+
+`docs/CHEATSHEET.md` remains the fallback prompt panel for agents without an
+installed adapter.
 
 Publish a human-friendly L0 review site from Shiki L1 specs:
 

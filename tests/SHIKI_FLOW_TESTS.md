@@ -108,3 +108,11 @@ When adapter regression checks run
 Then installed adapter files reference the v1 adapter contract
 And `/shiki-status`, `/shiki-next`, and `/shiki-modify <target>` map to Core Kernel context loading, task contracts, and workflow references
 And adapter execution reports `BLOCKED`, `MANUAL_DECISION`, and verification failures without marking incomplete plan items done.
+
+## HIT-014 Adapter Install And Commands
+
+Given a consumer project contains `shiki/`
+When `python shiki/tools-skills/scripts/install_agent_adapter.py --tool all` runs
+Then Codex, Claude Code, Gemini CLI, and OpenCode project-local command files are created
+And repeated installer runs skip matching Shiki-managed files without duplicates
+And `/shiki-next` remains the user-facing command while bounded batch, phase-wave, and subagent execution stay internal strategies.

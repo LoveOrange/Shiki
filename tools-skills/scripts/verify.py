@@ -190,7 +190,9 @@ def verify_static_text() -> None:
 
 def verify_core_consistency() -> None:
     log("checking core file consistency")
+    root_readme = (ROOT / "README.md").read_text(encoding="utf-8")
     cheatsheet = (ROOT / "docs" / "CHEATSHEET.md").read_text(encoding="utf-8")
+    flow_tests = (ROOT / "tests" / "SHIKI_FLOW_TESTS.md").read_text(encoding="utf-8")
     phase_contract = (ROOT / "core-kernel/runtime/phase_contract.md").read_text(encoding="utf-8")
     context_loading = (ROOT / "core-kernel/runtime/context_loading.md").read_text(encoding="utf-8")
     adapter_contract = (ROOT / "user-interface" / "adapters" / "tool_adapter_contract_v1.md").read_text(encoding="utf-8")
@@ -272,6 +274,28 @@ def verify_core_consistency() -> None:
             raise AssertionError(f"Missing feature-relative target guidance: {needle}")
     if "top-level prompt" not in context_loading:
         raise AssertionError("Missing user-facing top-level prompt guidance")
+
+    docs_text = root_readme + cheatsheet + flow_tests
+    for needle in [
+        "install_agent_adapter.py --tool all",
+        "install_agent_adapter.py --tool codex",
+        "install_agent_adapter.py --tool claude",
+        "install_agent_adapter.py --tool gemini",
+        "install_agent_adapter.py --tool opencode",
+        "/shiki-status",
+        "/shiki-next",
+        "/shiki-modify <target>",
+        ".codex/prompts/shiki-*.md",
+        ".claude/commands/shiki-*.md",
+        ".gemini/commands/shiki-*.toml",
+        ".opencode/commands/shiki-*.md",
+        "bounded batch",
+        "phase-wave",
+        "internal strategy",
+        "HIT-014 Adapter Install And Commands",
+    ]:
+        if needle not in docs_text:
+            raise AssertionError(f"adapter workflow docs missing expected content: {needle}")
 
     # Check the tool-native adapter contract covers the Phase 1 command surface
     for needle in [
