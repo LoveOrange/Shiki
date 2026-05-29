@@ -296,6 +296,9 @@ def verify_core_consistency() -> None:
         "internal strategy",
         "HIT-014 Adapter Install And Commands",
         "HIT-015 Claude Code Phase-Wave Adapter",
+        "HIT-016 Tool-Native Command Invocation Happy Paths",
+        "Command invocation after install",
+        "/commands reload",
     ]:
         if needle not in docs_text:
             raise AssertionError(f"adapter workflow docs missing expected content: {needle}")
@@ -620,6 +623,60 @@ def verify_fixture_workflow() -> None:
         ]:
             if needle not in adapter_text:
                 raise AssertionError(f"installed adapter files missing expected content: {needle}")
+
+        command_invocation_expectations = {
+            ".codex/prompts/shiki-status.md": [
+                "shiki/user-interface/adapters/tool_adapter_contract_v1.md",
+                "shiki/user-interface/adapters/codex_adapter.md",
+                "core-kernel/runtime/context_loading.md",
+                "shiki_context/workspace/active_task.md",
+                "Keep this command read-only and confirm no edits were made.",
+            ],
+            ".codex/prompts/shiki-next.md": [
+                "shiki/user-interface/adapters/tool_adapter_contract_v1.md",
+                "shiki/user-interface/adapters/codex_adapter.md",
+                "core-kernel/workflows/runner/next.md",
+                "core-kernel/runtime/task_contracts/",
+                "State the selected internal execution mode before edits",
+                "update output_files only after verification passes",
+            ],
+            ".codex/prompts/shiki-modify.md": [
+                "shiki/user-interface/adapters/tool_adapter_contract_v1.md",
+                "shiki/user-interface/adapters/codex_adapter.md",
+                "$ARGUMENTS",
+                "Treat $ARGUMENTS as the required /shiki-modify <target>",
+                "return BLOCKED when the target is missing or ambiguous",
+            ],
+            ".claude/commands/shiki-status.md": [
+                "disable-model-invocation: true",
+                "shiki/user-interface/adapters/tool_adapter_contract_v1.md",
+                "shiki/user-interface/adapters/claude_code_adapter.md",
+                "core-kernel/runtime/context_loading.md",
+                "Do not edit files.",
+            ],
+            ".claude/commands/shiki-next.md": [
+                "disable-model-invocation: true",
+                "shiki/user-interface/adapters/tool_adapter_contract_v1.md",
+                "shiki/user-interface/adapters/claude_code_adapter.md",
+                "core-kernel/workflows/runner/next.md",
+                "state the selected execution mode before edits",
+                "root Claude Code session responsible for plan state",
+                "update output_files only for verified items",
+            ],
+            ".claude/commands/shiki-modify.md": [
+                "disable-model-invocation: true",
+                "argument-hint: <target>",
+                "shiki/user-interface/adapters/tool_adapter_contract_v1.md",
+                "shiki/user-interface/adapters/claude_code_adapter.md",
+                "$ARGUMENTS",
+                "return BLOCKED when the target is missing or ambiguous",
+            ],
+        }
+        for relative, expectations in command_invocation_expectations.items():
+            command_text = (project / relative).read_text(encoding="utf-8")
+            for expectation in expectations:
+                if expectation not in command_text:
+                    raise AssertionError(f"{relative} missing command invocation content: {expectation}")
 
         gemini_manifest = json.loads((project / ".shiki" / "adapters" / "gemini" / "manifest.json").read_text(encoding="utf-8"))
         if gemini_manifest["tool"] != "gemini-cli":

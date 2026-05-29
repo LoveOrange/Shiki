@@ -76,9 +76,19 @@ python shiki/tools-skills/scripts/install_agent_adapter.py --tool gemini
 python shiki/tools-skills/scripts/install_agent_adapter.py --tool opencode
 ```
 
+Expected project-local files:
+
+| tool | install target | command files | extra files |
+| :--- | :--- | :--- | :--- |
+| Codex | `codex` | `.codex/prompts/shiki-*.md` | `.codex/skills/shiki/SKILL.md` |
+| Claude Code | `claude` | `.claude/commands/shiki-*.md` | `.claude/agents/shiki-phase-wave.md` |
+| Gemini CLI | `gemini` | `.gemini/commands/shiki-*.toml` | - |
+| OpenCode | `opencode` | `.opencode/commands/shiki-*.md` | `.opencode/agents/shiki-*.md` |
+
 After install, the primary command surface is:
 
 ```text
+/shiki-init
 /shiki-status
 /shiki-next
 /shiki-modify <target>
@@ -86,6 +96,9 @@ After install, the primary command surface is:
 /shiki-sync
 /shiki-doctor
 ```
+
+Invoke those commands inside the installed coding tool. If the tool was already
+running, reload its command surface or restart the session after installation.
 
 `/shiki-next` is the user-facing runner. Strong adapters may use bounded batch
 or phase-wave execution internally when Core Kernel stop rules allow it, but

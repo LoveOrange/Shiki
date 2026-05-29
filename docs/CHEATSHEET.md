@@ -37,6 +37,15 @@ Generated project-local files:
 | Gemini CLI | `.gemini/commands/shiki-*.toml` | - |
 | OpenCode | `.opencode/commands/shiki-*.md` | `.opencode/agents/shiki-*.md` |
 
+Command invocation after install:
+
+| tool | invoke | active-session note |
+| :--- | :--- | :--- |
+| Codex | `/shiki-status`, `/shiki-next`, `/shiki-modify <target>` | restart or reload the project session if prompts/skills were loaded before install |
+| Claude Code | `/shiki-status`, `/shiki-next`, `/shiki-modify <target>` | restart or reload commands after `.claude/commands/` changes |
+| Gemini CLI | `/shiki-status`, `/shiki-next`, `/shiki-modify <target>` | run `/commands reload` after `.gemini/commands/` changes |
+| OpenCode | `/shiki-status`, `/shiki-next`, `/shiki-modify <target>` | restart or reload the project session after `.opencode/commands/` changes |
+
 `/shiki-next` is the user-facing runner. It advances conservatively by one ready
 item by default. Strong adapters may use bounded batch, phase-wave, or subagent
 execution internally only when Core Kernel stop rules allow it; each selected

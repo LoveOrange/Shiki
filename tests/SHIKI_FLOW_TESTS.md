@@ -127,3 +127,13 @@ Then `.claude/commands/shiki-next.md` keeps the root session responsible for pla
 And `.claude/commands/shiki-modify.md` exposes `argument-hint: <target>`
 And `.claude/agents/shiki-phase-wave.md` requires a root assignment before edits
 And the worker refuses Merge, plan-state updates, missing assignment fields, ambiguous ownership, and failed verification.
+
+## HIT-016 Tool-Native Command Invocation Happy Paths
+
+Given Codex, Claude Code, Gemini CLI, and OpenCode adapters are installed into a consumer project
+When a user invokes `/shiki-status`, `/shiki-next`, or `/shiki-modify <target>` from the native command surface
+Then each command loads the adapter contract before tool-specific guidance
+And `/shiki-status` loads Core Kernel context and remains read-only
+And `/shiki-next` loads runner/next, selects an internal execution mode, loads task contracts, and marks `output_files` only after verification
+And `/shiki-modify <target>` treats trailing command text as the required bounded target and returns `BLOCKED` when the target is missing or ambiguous
+And active tool sessions document the required reload or restart step after command files change.
