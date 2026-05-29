@@ -1,19 +1,47 @@
 # Shiki Command Cheatsheet
 
-Install a project-local adapter first when your coding tool supports it. Paths
-assume Shiki is mounted as `shiki/` in the consumer project.
+Install a project-local adapter first when your coding tool supports it. The
+preferred Code Agent path is to ask the tool you are already using:
+
+```text
+Install github.com/LoveOrange/Shiki in this project as shiki/, initialize Shiki,
+and install the Shiki adapter for the coding tool I am using now. Preserve any
+existing project changes, and tell me which files were created or updated.
+```
+
+If `shiki/` already exists, ask for the adapter repair path:
+
+```text
+Install or repair the Shiki adapter for my current coding tool from the existing
+shiki/ directory. Reload the tool command surface if needed.
+```
+
+To update an existing install, ask the same tool:
+
+```text
+Update the Shiki install in this project to the latest github.com/LoveOrange/Shiki
+version. First identify whether shiki/ is a submodule, subtree, or plain checkout.
+Record the current Shiki commit, update it using the project's existing install
+style, then rerun Shiki init and repair the adapter for my current coding tool.
+Preserve unrelated project changes. When finished, report the old commit, new
+commit, upstream Shiki commits included in the update, and any project-local
+Shiki files or adapter files that were created or updated.
+```
+
+Manual commands below assume Shiki is mounted as `shiki/` in the consumer
+project.
 
 ```bash
-python shiki/tools-skills/scripts/install_agent_adapter.py --tool all
+python3 shiki/tools-skills/scripts/install_agent_adapter.py --tool all
 ```
 
 Use a single target to install one adapter:
 
 ```bash
-python shiki/tools-skills/scripts/install_agent_adapter.py --tool codex
-python shiki/tools-skills/scripts/install_agent_adapter.py --tool claude
-python shiki/tools-skills/scripts/install_agent_adapter.py --tool gemini
-python shiki/tools-skills/scripts/install_agent_adapter.py --tool opencode
+python3 shiki/tools-skills/scripts/install_agent_adapter.py --tool codex
+python3 shiki/tools-skills/scripts/install_agent_adapter.py --tool claude
+python3 shiki/tools-skills/scripts/install_agent_adapter.py --tool gemini
+python3 shiki/tools-skills/scripts/install_agent_adapter.py --tool opencode
 ```
 
 Primary tool-native commands:

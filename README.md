@@ -35,11 +35,28 @@ agents.
 
 ## Quick Start
 
-Use Shiki as a read-only submodule or subtree inside a consumer project:
+Recommended for Code Agent users: ask the coding tool you are already using to
+install Shiki into the current project.
+
+```text
+Install github.com/LoveOrange/Shiki in this project as shiki/, initialize Shiki,
+and install the Shiki adapter for the coding tool I am using now. Preserve any
+existing project changes, and tell me which files were created or updated.
+```
+
+If the project already contains `shiki/`, use the shorter repair prompt:
+
+```text
+Install or repair the Shiki adapter for my current coding tool from the existing
+shiki/ directory. Reload the tool command surface if needed.
+```
+
+The agent should perform the equivalent local steps below. Use the commands
+directly only when you are installing manually or auditing what the agent did.
 
 ```bash
 git submodule add https://github.com/LoveOrange/Shiki.git shiki
-python shiki/tools-skills/scripts/init.py
+python3 shiki/tools-skills/scripts/init.py
 ```
 
 Initialization creates:
@@ -54,26 +71,51 @@ shiki_context/
   features/
 ```
 
+Update Shiki later with the same Code Agent style:
+
+```text
+Update the Shiki install in this project to the latest github.com/LoveOrange/Shiki
+version. First identify whether shiki/ is a submodule, subtree, or plain checkout.
+Record the current Shiki commit, update it using the project's existing install
+style, then rerun Shiki init and repair the adapter for my current coding tool.
+Preserve unrelated project changes. When finished, report the old commit, new
+commit, upstream Shiki commits included in the update, and any project-local
+Shiki files or adapter files that were created or updated.
+```
+
+For a submodule install, the equivalent manual update is:
+
+```bash
+old=$(git -C shiki rev-parse --short HEAD)
+git -C shiki fetch origin
+git -C shiki checkout main
+git -C shiki pull --ff-only origin main
+new=$(git -C shiki rev-parse --short HEAD)
+git -C shiki log --oneline --no-decorate "$old..$new"
+python3 shiki/tools-skills/scripts/init.py
+python3 shiki/tools-skills/scripts/install_agent_adapter.py --tool codex
+```
+
 Create a feature workspace:
 
 ```bash
-python shiki/tools-skills/scripts/new_feature.py --taskid FEAT-001
+python3 shiki/tools-skills/scripts/new_feature.py --taskid FEAT-001
 ```
 
 Then install project-local tool-native adapters and use the canonical Shiki slash
 commands directly:
 
 ```bash
-python shiki/tools-skills/scripts/install_agent_adapter.py --tool all
+python3 shiki/tools-skills/scripts/install_agent_adapter.py --tool all
 ```
 
 Use a single tool target when needed:
 
 ```bash
-python shiki/tools-skills/scripts/install_agent_adapter.py --tool codex
-python shiki/tools-skills/scripts/install_agent_adapter.py --tool claude
-python shiki/tools-skills/scripts/install_agent_adapter.py --tool gemini
-python shiki/tools-skills/scripts/install_agent_adapter.py --tool opencode
+python3 shiki/tools-skills/scripts/install_agent_adapter.py --tool codex
+python3 shiki/tools-skills/scripts/install_agent_adapter.py --tool claude
+python3 shiki/tools-skills/scripts/install_agent_adapter.py --tool gemini
+python3 shiki/tools-skills/scripts/install_agent_adapter.py --tool opencode
 ```
 
 Expected project-local files:
