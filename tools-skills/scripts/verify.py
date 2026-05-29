@@ -80,6 +80,9 @@ EXPECTED_ADAPTER_FILES = [
     ".opencode/commands/shiki-review.md",
     ".opencode/commands/shiki-sync.md",
     ".opencode/commands/shiki-doctor.md",
+    ".opencode/agents/shiki-runner.md",
+    ".opencode/agents/shiki-reviewer.md",
+    ".opencode/agents/shiki-phase-wave.md",
 ]
 TEXT_SKIP_DIRS = {
     ".git",
@@ -194,6 +197,7 @@ def verify_core_consistency() -> None:
     codex_adapter = (ROOT / "user-interface" / "adapters" / "codex_adapter.md").read_text(encoding="utf-8")
     claude_adapter = (ROOT / "user-interface" / "adapters" / "claude_code_adapter.md").read_text(encoding="utf-8")
     gemini_adapter = (ROOT / "user-interface" / "adapters" / "gemini_cli_adapter.md").read_text(encoding="utf-8")
+    opencode_adapter = (ROOT / "user-interface" / "adapters" / "opencode_adapter.md").read_text(encoding="utf-8")
     runner_next = (ROOT / "core-kernel" / "workflows" / "runner" / "next.md").read_text(encoding="utf-8")
     runner_apply = (ROOT / "core-kernel" / "workflows" / "runner" / "apply.md").read_text(encoding="utf-8")
     runner_batch = (ROOT / "core-kernel" / "workflows" / "runner" / "batch.md").read_text(encoding="utf-8")
@@ -335,6 +339,17 @@ def verify_core_consistency() -> None:
     ]:
         if needle not in gemini_adapter:
             raise AssertionError(f"Gemini adapter doc missing expected guidance: {needle}")
+    for needle in [
+        ".opencode/commands/shiki-status.md",
+        ".opencode/agents/",
+        "shiki-runner",
+        "shiki-reviewer",
+        "shiki-phase-wave",
+        "plan state and verification",
+        "Merge remains",
+    ]:
+        if needle not in opencode_adapter:
+            raise AssertionError(f"OpenCode adapter doc missing expected guidance: {needle}")
     for needle in [
         ".claude/commands/",
         ".claude/agents/shiki-phase-wave.md",
@@ -509,6 +524,9 @@ def verify_fixture_workflow() -> None:
             ".codex/skills/shiki/SKILL.md",
             ".gemini/commands/shiki-status.toml",
             "{{args}}",
+            ".opencode/commands/shiki-status.md",
+            ".opencode/agents/shiki-runner.md",
+            "shiki-reviewer",
             "core-kernel/runtime/context_loading.md",
             "core-kernel/runtime/task_contracts/",
             "Shiki Adapter: managed",

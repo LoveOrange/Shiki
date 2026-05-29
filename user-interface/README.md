@@ -7,5 +7,6 @@ This module owns Shiki user entry surfaces.
 - `adapters/codex_adapter.md` defines the Codex command and skill surface.
 - `adapters/claude_code_adapter.md` defines the Claude Code command and subagent surface.
 - `adapters/gemini_cli_adapter.md` defines the Gemini CLI project command surface.
+- `adapters/opencode_adapter.md` defines the OpenCode command and agent role surface.
 - Future CLI/API/UI entry logic should live here or delegate here.
 - User Interface must call Core Kernel contracts and must not define separate phase, task, workflow, or evidence truth.

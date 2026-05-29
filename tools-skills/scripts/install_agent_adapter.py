@@ -20,6 +20,7 @@ CONTRACT_PATH = "user-interface/adapters/tool_adapter_contract_v1.md"
 CODEX_ADAPTER_PATH = "user-interface/adapters/codex_adapter.md"
 CLAUDE_ADAPTER_PATH = "user-interface/adapters/claude_code_adapter.md"
 GEMINI_ADAPTER_PATH = "user-interface/adapters/gemini_cli_adapter.md"
+OPENCODE_ADAPTER_PATH = "user-interface/adapters/opencode_adapter.md"
 CONTEXT_ROOT = "shiki_context"
 COMMANDS = [
     {
@@ -193,6 +194,11 @@ TOOL_SPECS = {
         "extension": ".md",
         "format": "opencode_markdown",
         "arg_token": "$ARGUMENTS",
+        "agent_files": [
+            ".opencode/agents/shiki-runner.md",
+            ".opencode/agents/shiki-reviewer.md",
+            ".opencode/agents/shiki-phase-wave.md",
+        ],
         "capabilities": {
             "supports_slash_commands": True,
             "supports_skills": True,
@@ -318,6 +324,39 @@ def gemini_command_prompt(command: dict, source_root: str, arg_token: str) -> st
     return prompt + notes
 
 
+def opencode_command_prompt(command: dict, source_root: str, arg_token: str) -> str:
+    prompt = command_prompt(command, source_root, arg_token)
+    notes = (
+        "\nOpenCode adapter notes:\n"
+        f"- Also load {source_root}/{OPENCODE_ADAPTER_PATH}.\n"
+        "- shiki-runner owns plan state, dependency order, output_files updates, and verification.\n"
+    )
+    if command["name"] == "shiki-next":
+        notes += (
+            "- Default to single_item mode.\n"
+            "- Use bounded_batch or phase_wave only when core-kernel/workflows/runner/batch.md allows every claimed item and all stop conditions are clear.\n"
+            "- Delegate to shiki-phase-wave only for explicitly assigned Design or Code items; Merge remains root-controlled.\n"
+        )
+    if command["name"] == "shiki-review":
+        notes += "- Run as read-only review through shiki-reviewer.\n"
+    return prompt + notes
+
+
+def opencode_command_content(tool: str, command: dict, source_root: str, arg_token: str) -> str:
+    marker = f"<!-- {MANAGED_MARKER}; contract={CONTRACT_VERSION}; tool={tool}; command={command['canonical']} -->"
+    agent = "shiki-reviewer" if command["name"] == "shiki-review" else "shiki-runner"
+    subtask = "true" if agent == "shiki-reviewer" else "false"
+    return (
+        "---\n"
+        f"description: {command['description']}\n"
+        f"agent: {agent}\n"
+        f"subtask: {subtask}\n"
+        "---\n"
+        f"{marker}\n\n"
+        f"{opencode_command_prompt(command, source_root, arg_token)}"
+    )
+
+
 def markdown_content(tool: str, command: dict, source_root: str, arg_token: str, frontmatter: bool) -> str:
     marker = f"<!-- {MANAGED_MARKER}; contract={CONTRACT_VERSION}; tool={tool}; command={command['canonical']} -->"
     if tool == "codex":
@@ -372,7 +411,7 @@ def render_command_file(tool_key: str, spec: dict, command: dict, source_root: s
     if spec["format"] == "gemini_toml":
         return gemini_toml_content(tool_key, command, source_root, spec["arg_token"])
     if spec["format"] == "opencode_markdown":
-        return markdown_content(tool_key, command, source_root, spec["arg_token"], frontmatter=True)
+        return opencode_command_content(tool_key, command, source_root, spec["arg_token"])
     return markdown_content(tool_key, command, source_root, spec["arg_token"], frontmatter=False)
 
 
@@ -433,6 +472,60 @@ def codex_skill_content(source_root: str) -> str:
         "- /shiki-next may use bounded_batch only when core-kernel/workflows/runner/batch.md allows every claimed item.\n"
         "- Stop before Merge, BLOCKED, MANUAL_DECISION, missing input, ambiguous ownership, baseline writes, or failed verification.\n"
         "- Report BLOCKED, MANUAL_DECISION, and VERIFICATION_FAILED with the adapter contract fields.\n"
+    )
+
+
+def opencode_agent_content(agent_name: str, source_root: str) -> str:
+    if agent_name == "shiki-reviewer":
+        return (
+            "---\n"
+            "description: Read-only Shiki reviewer for code/spec alignment and test gaps.\n"
+            "mode: subagent\n"
+            "tools:\n"
+            "  write: false\n"
+            "  edit: false\n"
+            "---\n"
+            f"<!-- {MANAGED_MARKER}; contract={CONTRACT_VERSION}; tool=opencode; agent={agent_name} -->\n\n"
+            "You are the Shiki reviewer for OpenCode. Load the adapter contract and current Shiki plan context, review findings first by severity, and do not edit files.\n\n"
+            "Load:\n"
+            f"- {source_root}/{CONTRACT_PATH}\n"
+            f"- {source_root}/{OPENCODE_ADAPTER_PATH}\n"
+            "- shiki_context/workspace/active_task.md\n"
+        )
+    if agent_name == "shiki-phase-wave":
+        return (
+            "---\n"
+            "description: Optional Shiki Design/Code phase-wave worker for explicitly assigned items.\n"
+            "mode: subagent\n"
+            "---\n"
+            f"<!-- {MANAGED_MARKER}; contract={CONTRACT_VERSION}; tool=opencode; agent={agent_name} -->\n\n"
+            "You are the Shiki phase-wave worker for OpenCode.\n\n"
+            "Rules:\n"
+            "- Work only on Design or Code items explicitly assigned by shiki-runner.\n"
+            "- Do not select plan items yourself.\n"
+            "- Do not edit _plan.md, output_files, active_task.md, sync_plan.md, doctor_plan.md, or Merge state.\n"
+            "- Load each assigned task contract before its workflow text.\n"
+            "- Stop on BLOCKED, MANUAL_DECISION, missing input, ambiguous ownership, or failed verification.\n"
+            "- Return files changed and verification evidence to shiki-runner.\n\n"
+            "Load:\n"
+            f"- {source_root}/{CONTRACT_PATH}\n"
+            f"- {source_root}/{OPENCODE_ADAPTER_PATH}\n"
+        )
+    return (
+        "---\n"
+        "description: Root Shiki runner for plan selection, dependency order, output_files updates, and verification.\n"
+        "mode: primary\n"
+        "---\n"
+        f"<!-- {MANAGED_MARKER}; contract={CONTRACT_VERSION}; tool=opencode; agent={agent_name} -->\n\n"
+        "You are shiki-runner, the root OpenCode role for Shiki commands.\n\n"
+        "Rules:\n"
+        "- Own plan state, dependency order, output_files updates, and final verification.\n"
+        "- Load Shiki Core runtime docs and task contracts instead of duplicating workflow logic.\n"
+        "- Use shiki-phase-wave only for bounded Design or Code phase waves whose dependencies and stop conditions are clear.\n"
+        "- Keep Merge root-controlled by default.\n\n"
+        "Load:\n"
+        f"- {source_root}/{CONTRACT_PATH}\n"
+        f"- {source_root}/{OPENCODE_ADAPTER_PATH}\n"
     )
 
 
@@ -498,6 +591,15 @@ def install_tool(tool_key: str, project_root: Path, source_root: str, dry_run: b
             write_managed_file(
                 project_root / relative,
                 codex_skill_content(source_root),
+                project_root,
+                report,
+                dry_run,
+            )
+    if tool_key == "opencode":
+        for relative in spec.get("agent_files", []):
+            write_managed_file(
+                project_root / relative,
+                opencode_agent_content(Path(relative).stem, source_root),
                 project_root,
                 report,
                 dry_run,
