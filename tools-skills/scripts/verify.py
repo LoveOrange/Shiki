@@ -381,6 +381,12 @@ def verify_core_consistency() -> None:
         "shiki-reviewer",
         "shiki-phase-wave",
         "plan state and verification",
+        "Native Activation",
+        "Command Happy Paths",
+        "$ARGUMENTS",
+        "permission",
+        "hidden: true",
+        "subtask",
         "Merge remains",
     ]:
         if needle not in opencode_adapter:
@@ -599,7 +605,15 @@ def verify_fixture_workflow() -> None:
             "{{args}}",
             ".opencode/commands/shiki-status.md",
             ".opencode/agents/shiki-runner.md",
+            "agent: shiki-runner",
+            "agent: shiki-reviewer",
+            "subtask: true",
+            "permission:",
+            "task:",
+            "hidden: true",
             "shiki-reviewer",
+            "Required root assignment",
+            "Return shape:",
             "core-kernel/runtime/context_loading.md",
             "core-kernel/runtime/task_contracts/",
             "Shiki Adapter: managed",
@@ -647,6 +661,102 @@ def verify_fixture_workflow() -> None:
             for expectation in expectations:
                 if expectation not in prompt:
                     raise AssertionError(f"{command_path.relative_to(project)} missing expected prompt content: {expectation}")
+
+        opencode_manifest = json.loads((project / ".shiki" / "adapters" / "opencode" / "manifest.json").read_text(encoding="utf-8"))
+        if opencode_manifest["tool"] != "opencode":
+            raise AssertionError("OpenCode manifest must identify opencode")
+        if opencode_manifest["execution_modes"] != ["single_item", "bounded_batch", "phase_wave", "subagent_delegation"]:
+            raise AssertionError("OpenCode manifest must expose all Phase 1 execution modes")
+        for capability in ["supports_slash_commands", "supports_skills", "supports_subagents", "supports_project_local_install"]:
+            if not opencode_manifest["capabilities"][capability]:
+                raise AssertionError(f"OpenCode manifest must enable {capability}")
+        for relative in [
+            ".opencode/agents/shiki-runner.md",
+            ".opencode/agents/shiki-reviewer.md",
+            ".opencode/agents/shiki-phase-wave.md",
+        ]:
+            if relative not in opencode_manifest["agent_files"]:
+                raise AssertionError(f"OpenCode manifest missing agent file: {relative}")
+
+        opencode_command_expectations = {
+            "shiki-status": [
+                "agent: shiki-runner",
+                "subtask: false",
+                "shiki/user-interface/adapters/opencode_adapter.md",
+                "core-kernel/runtime/context_loading.md",
+                "Keep this command read-only and confirm no edits were made.",
+            ],
+            "shiki-next": [
+                "agent: shiki-runner",
+                "subtask: false",
+                "core-kernel/workflows/runner/next.md",
+                "state the selected internal execution mode before edits",
+                "Load core-kernel/workflows/runner/batch.md before selecting bounded_batch, phase_wave, or subagent_delegation.",
+                "Before delegation, prepare a root assignment",
+                "After a subagent returns, verify each item in shiki-runner context",
+                "Merge phase remains root-controlled by default.",
+            ],
+            "shiki-modify": [
+                "agent: shiki-runner",
+                "subtask: false",
+                "$ARGUMENTS",
+                "Treat $ARGUMENTS as the required /shiki-modify <target>",
+                "Return BLOCKED when $ARGUMENTS is empty, missing a target, or ambiguous.",
+                "direct specs and source files related to the target",
+            ],
+            "shiki-review": [
+                "agent: shiki-reviewer",
+                "subtask: true",
+                "Run as a read-only subtask through shiki-reviewer and do not edit files.",
+            ],
+        }
+        for command_name, expectations in opencode_command_expectations.items():
+            command_path = project / ".opencode" / "commands" / f"{command_name}.md"
+            command_text = command_path.read_text(encoding="utf-8")
+            if not command_text.startswith("---\n"):
+                raise AssertionError(f"{command_path.relative_to(project)} must start with frontmatter")
+            for expectation in expectations:
+                if expectation not in command_text:
+                    raise AssertionError(f"{command_path.relative_to(project)} missing expected command content: {expectation}")
+
+        opencode_agent_expectations = {
+            "shiki-runner": [
+                "mode: primary",
+                "permission:",
+                "task:",
+                "\"*\": deny",
+                "shiki-reviewer: allow",
+                "shiki-phase-wave: allow",
+                "Applicable AGENTS.md files",
+                "Own plan state, dependency order, output_files updates, and final verification.",
+            ],
+            "shiki-reviewer": [
+                "mode: subagent",
+                "edit: deny",
+                "task: deny",
+                "Review findings first by severity.",
+                "Stay read-only; do not edit files or update plan state.",
+            ],
+            "shiki-phase-wave": [
+                "mode: subagent",
+                "hidden: true",
+                "edit: ask",
+                "task: deny",
+                "Required root assignment:",
+                "batch stop-condition check result from core-kernel/workflows/runner/batch.md",
+                "Do not select plan items yourself.",
+                "Do not edit _plan.md, output_files, active_task.md, sync_plan.md, doctor_plan.md, or Merge state.",
+                "Return shape:",
+            ],
+        }
+        for agent_name, expectations in opencode_agent_expectations.items():
+            agent_path = project / ".opencode" / "agents" / f"{agent_name}.md"
+            agent_text = agent_path.read_text(encoding="utf-8")
+            if "tools:" in agent_text:
+                raise AssertionError(f"{agent_path.relative_to(project)} must use permission frontmatter, not deprecated tools frontmatter")
+            for expectation in expectations:
+                if expectation not in agent_text:
+                    raise AssertionError(f"{agent_path.relative_to(project)} missing expected agent content: {expectation}")
 
         outside_root = tmp / "outside-project"
         outside_root.mkdir()
