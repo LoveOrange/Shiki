@@ -154,5 +154,6 @@ python3 tools-skills/scripts/verify.py
 ```
 
 The verification script compiles Python helpers, checks references, creates a
-sample project, runs init and scan flows with a deterministic `devagent` shim,
-and validates docs publishing behavior.
+sample project, runs init, scan, feature, and adapter-install flows with a
+deterministic `devagent` shim, validates tool-native adapter files, and checks
+docs publishing behavior.
