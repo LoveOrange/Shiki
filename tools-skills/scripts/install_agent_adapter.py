@@ -19,6 +19,7 @@ MANAGED_MARKER = "Shiki Adapter: managed by tools-skills/scripts/install_agent_a
 CONTRACT_PATH = "user-interface/adapters/tool_adapter_contract_v1.md"
 CODEX_ADAPTER_PATH = "user-interface/adapters/codex_adapter.md"
 CLAUDE_ADAPTER_PATH = "user-interface/adapters/claude_code_adapter.md"
+GEMINI_ADAPTER_PATH = "user-interface/adapters/gemini_cli_adapter.md"
 CONTEXT_ROOT = "shiki_context"
 COMMANDS = [
     {
@@ -300,6 +301,23 @@ def codex_command_prompt(command: dict, source_root: str, arg_token: str) -> str
     return prompt + notes
 
 
+def gemini_command_prompt(command: dict, source_root: str, arg_token: str) -> str:
+    prompt = command_prompt(command, source_root, arg_token)
+    notes = (
+        "\nGemini CLI adapter notes:\n"
+        f"- Also load {source_root}/{GEMINI_ADAPTER_PATH}.\n"
+        "- This command is installed from a project-local .gemini/commands/*.toml file.\n"
+    )
+    if command["name"] == "shiki-modify":
+        notes += "- Treat {{args}} as the target and requested change text for /shiki-modify <target>.\n"
+    if command["name"] == "shiki-next":
+        notes += (
+            "- Default to single_item mode.\n"
+            "- Use bounded_batch only when core-kernel/workflows/runner/batch.md allows every claimed item and all stop conditions are clear.\n"
+        )
+    return prompt + notes
+
+
 def markdown_content(tool: str, command: dict, source_root: str, arg_token: str, frontmatter: bool) -> str:
     marker = f"<!-- {MANAGED_MARKER}; contract={CONTRACT_VERSION}; tool={tool}; command={command['canonical']} -->"
     if tool == "codex":
@@ -320,7 +338,7 @@ def markdown_content(tool: str, command: dict, source_root: str, arg_token: str,
 
 
 def gemini_toml_content(tool: str, command: dict, source_root: str, arg_token: str) -> str:
-    prompt = command_prompt(command, source_root, arg_token)
+    prompt = gemini_command_prompt(command, source_root, arg_token)
     return (
         f"# {MANAGED_MARKER}; contract={CONTRACT_VERSION}; tool={tool}; command={command['canonical']}\n"
         f"description = {json.dumps(command['description'])}\n"

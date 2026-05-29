@@ -193,6 +193,7 @@ def verify_core_consistency() -> None:
     adapter_contract = (ROOT / "user-interface" / "adapters" / "tool_adapter_contract_v1.md").read_text(encoding="utf-8")
     codex_adapter = (ROOT / "user-interface" / "adapters" / "codex_adapter.md").read_text(encoding="utf-8")
     claude_adapter = (ROOT / "user-interface" / "adapters" / "claude_code_adapter.md").read_text(encoding="utf-8")
+    gemini_adapter = (ROOT / "user-interface" / "adapters" / "gemini_cli_adapter.md").read_text(encoding="utf-8")
     runner_next = (ROOT / "core-kernel" / "workflows" / "runner" / "next.md").read_text(encoding="utf-8")
     runner_apply = (ROOT / "core-kernel" / "workflows" / "runner" / "apply.md").read_text(encoding="utf-8")
     runner_batch = (ROOT / "core-kernel" / "workflows" / "runner" / "batch.md").read_text(encoding="utf-8")
@@ -324,6 +325,16 @@ def verify_core_consistency() -> None:
     ]:
         if needle not in codex_adapter:
             raise AssertionError(f"Codex adapter doc missing expected guidance: {needle}")
+    for needle in [
+        ".gemini/commands/shiki-status.toml",
+        "/shiki-modify <target>",
+        "{{args}}",
+        "core-kernel/runtime/context_loading.md",
+        "`bounded_batch`",
+        "project-local `.gemini/commands/*.toml`",
+    ]:
+        if needle not in gemini_adapter:
+            raise AssertionError(f"Gemini adapter doc missing expected guidance: {needle}")
     for needle in [
         ".claude/commands/",
         ".claude/agents/shiki-phase-wave.md",
@@ -496,6 +507,8 @@ def verify_fixture_workflow() -> None:
             "AGENTS.md",
             "bounded_batch",
             ".codex/skills/shiki/SKILL.md",
+            ".gemini/commands/shiki-status.toml",
+            "{{args}}",
             "core-kernel/runtime/context_loading.md",
             "core-kernel/runtime/task_contracts/",
             "Shiki Adapter: managed",
