@@ -17,6 +17,7 @@ from pathlib import Path
 CONTRACT_VERSION = "v1"
 MANAGED_MARKER = "Shiki Adapter: managed by tools-skills/scripts/install_agent_adapter.py"
 CONTRACT_PATH = "user-interface/adapters/tool_adapter_contract_v1.md"
+CODEX_ADAPTER_PATH = "user-interface/adapters/codex_adapter.md"
 CLAUDE_ADAPTER_PATH = "user-interface/adapters/claude_code_adapter.md"
 CONTEXT_ROOT = "shiki_context"
 COMMANDS = [
@@ -147,13 +148,14 @@ TOOL_SPECS = {
         "extension": ".md",
         "format": "markdown",
         "arg_token": "$ARGUMENTS",
+        "skill_files": [".codex/skills/shiki/SKILL.md"],
         "capabilities": {
             "supports_slash_commands": True,
             "supports_skills": True,
             "supports_subagents": False,
             "supports_project_local_install": True,
         },
-        "execution_modes": ["single_item"],
+        "execution_modes": ["single_item", "bounded_batch"],
     },
     "claude": {
         "manifest_tool": "claude-code",
@@ -282,9 +284,27 @@ def claude_command_prompt(command: dict, source_root: str, arg_token: str) -> st
     )
 
 
+def codex_command_prompt(command: dict, source_root: str, arg_token: str) -> str:
+    prompt = command_prompt(command, source_root, arg_token)
+    notes = (
+        "\nCodex adapter notes:\n"
+        f"- Also load {source_root}/{CODEX_ADAPTER_PATH}.\n"
+        "- Respect applicable AGENTS.md instructions before running this command.\n"
+        "- Keep command bodies thin by loading Shiki Core Kernel docs and task contracts instead of duplicating workflow logic.\n"
+    )
+    if command["name"] == "shiki-next":
+        notes += (
+            "- Default to single_item mode.\n"
+            "- Use bounded_batch only when core-kernel/workflows/runner/batch.md allows every claimed item and all stop conditions are clear.\n"
+        )
+    return prompt + notes
+
+
 def markdown_content(tool: str, command: dict, source_root: str, arg_token: str, frontmatter: bool) -> str:
     marker = f"<!-- {MANAGED_MARKER}; contract={CONTRACT_VERSION}; tool={tool}; command={command['canonical']} -->"
-    if tool == "claude":
+    if tool == "codex":
+        prompt = codex_command_prompt(command, source_root, arg_token)
+    elif tool == "claude":
         prompt = claude_command_prompt(command, source_root, arg_token)
     else:
         prompt = command_prompt(command, source_root, arg_token)
@@ -324,6 +344,7 @@ def manifest_content(tool_key: str, spec: dict, source_root: str) -> str:
             f"{spec['command_dir']}/{command['name']}{spec['extension']}" for command in COMMANDS
         ],
         "agent_files": spec.get("agent_files", []),
+        "skill_files": spec.get("skill_files", []),
         "adapter_key": tool_key,
     }
     return json.dumps(data, indent=2, sort_keys=True) + "\n"
@@ -366,6 +387,34 @@ def claude_phase_wave_agent_content(source_root: str) -> str:
         "- verification_run\n"
         "- verification_result\n"
         "- required_root_action\n"
+    )
+
+
+def codex_skill_content(source_root: str) -> str:
+    commands = ", ".join(command["canonical"] for command in COMMANDS)
+    return (
+        "---\n"
+        "name: shiki\n"
+        "description: Use when the user invokes Shiki commands such as /shiki-status, /shiki-next, or /shiki-modify, or asks Codex to run Shiki workflow tasks from a project-local Shiki install.\n"
+        "---\n\n"
+        "# Shiki Codex Skill\n\n"
+        f"{MANAGED_MARKER}; contract={CONTRACT_VERSION}; tool=codex; skill=shiki\n\n"
+        "Use this skill for these canonical commands:\n\n"
+        f"{commands}\n\n"
+        "Required first reads:\n"
+        "- Applicable AGENTS.md files for the current workspace scope.\n"
+        f"- {source_root}/{CONTRACT_PATH}\n"
+        f"- {source_root}/{CODEX_ADAPTER_PATH}\n"
+        "- shiki_context/workspace/active_task.md when the command needs active Shiki state.\n\n"
+        "Rules:\n"
+        "- Respect AGENTS.md and project-level Shiki rules.\n"
+        "- Treat Shiki Core Kernel as the source of truth for routing, task contracts, workflow binding, context loading, evidence, and gate state.\n"
+        "- Keep command handling thin; load runtime docs and task contracts instead of copying workflow logic into the skill.\n"
+        "- /shiki-status and /shiki-review are read-only unless the user explicitly changes the task.\n"
+        "- /shiki-next defaults to single_item mode.\n"
+        "- /shiki-next may use bounded_batch only when core-kernel/workflows/runner/batch.md allows every claimed item.\n"
+        "- Stop before Merge, BLOCKED, MANUAL_DECISION, missing input, ambiguous ownership, baseline writes, or failed verification.\n"
+        "- Report BLOCKED, MANUAL_DECISION, and VERIFICATION_FAILED with the adapter contract fields.\n"
     )
 
 
@@ -422,6 +471,15 @@ def install_tool(tool_key: str, project_root: Path, source_root: str, dry_run: b
             write_managed_file(
                 project_root / relative,
                 claude_phase_wave_agent_content(source_root),
+                project_root,
+                report,
+                dry_run,
+            )
+    if tool_key == "codex":
+        for relative in spec.get("skill_files", []):
+            write_managed_file(
+                project_root / relative,
+                codex_skill_content(source_root),
                 project_root,
                 report,
                 dry_run,

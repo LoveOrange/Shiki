@@ -57,6 +57,7 @@ EXPECTED_ADAPTER_FILES = [
     ".codex/prompts/shiki-review.md",
     ".codex/prompts/shiki-sync.md",
     ".codex/prompts/shiki-doctor.md",
+    ".codex/skills/shiki/SKILL.md",
     ".claude/commands/shiki-init.md",
     ".claude/commands/shiki-status.md",
     ".claude/commands/shiki-next.md",
@@ -190,6 +191,7 @@ def verify_core_consistency() -> None:
     phase_contract = (ROOT / "core-kernel/runtime/phase_contract.md").read_text(encoding="utf-8")
     context_loading = (ROOT / "core-kernel/runtime/context_loading.md").read_text(encoding="utf-8")
     adapter_contract = (ROOT / "user-interface" / "adapters" / "tool_adapter_contract_v1.md").read_text(encoding="utf-8")
+    codex_adapter = (ROOT / "user-interface" / "adapters" / "codex_adapter.md").read_text(encoding="utf-8")
     claude_adapter = (ROOT / "user-interface" / "adapters" / "claude_code_adapter.md").read_text(encoding="utf-8")
     runner_next = (ROOT / "core-kernel" / "workflows" / "runner" / "next.md").read_text(encoding="utf-8")
     runner_apply = (ROOT / "core-kernel" / "workflows" / "runner" / "apply.md").read_text(encoding="utf-8")
@@ -312,6 +314,16 @@ def verify_core_consistency() -> None:
     ]:
         if core_ref not in adapter_contract:
             raise AssertionError(f"adapter contract missing Core Kernel reference: {core_ref}")
+    for needle in [
+        ".codex/prompts/shiki-status.md",
+        ".codex/skills/shiki/SKILL.md",
+        "AGENTS.md",
+        "`single_item` mode by default",
+        "switch `/shiki-next` to `bounded_batch`",
+        "Verification covers installed Codex adapter files",
+    ]:
+        if needle not in codex_adapter:
+            raise AssertionError(f"Codex adapter doc missing expected guidance: {needle}")
     for needle in [
         ".claude/commands/",
         ".claude/agents/shiki-phase-wave.md",
@@ -481,6 +493,9 @@ def verify_fixture_workflow() -> None:
             "/shiki-modify <target>",
             "shiki-phase-wave",
             "Merge phase remains root-controlled",
+            "AGENTS.md",
+            "bounded_batch",
+            ".codex/skills/shiki/SKILL.md",
             "core-kernel/runtime/context_loading.md",
             "core-kernel/runtime/task_contracts/",
             "Shiki Adapter: managed",
