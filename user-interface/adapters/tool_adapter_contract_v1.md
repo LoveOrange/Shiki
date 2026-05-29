@@ -39,6 +39,19 @@ The manifest also records:
 | `source_root` | Path to the mounted Shiki framework, normally `shiki/`. |
 | `context_root` | Path to the consumer context store, normally `shiki_context/`. |
 
+## Tool Capability Matrix
+
+Adapters must encode the target tool capability row in their generated
+project-local manifest. The matrix is descriptive; Core Kernel task contracts
+remain authoritative for actual execution and stop decisions.
+
+| tool | manifest `tool` | slash commands | skills or prompt files | subagents | project-local install | allowed execution modes |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| Codex | `codex` | yes | yes | no | yes | `single_item`, `bounded_batch` |
+| Claude Code | `claude-code` | yes | no | yes | yes | `single_item`, `bounded_batch`, `phase_wave`, `subagent_delegation` |
+| Gemini CLI | `gemini-cli` | yes | no | no | yes | `single_item`, `bounded_batch` |
+| OpenCode | `opencode` | yes | yes | yes | yes | `single_item`, `bounded_batch`, `phase_wave`, `subagent_delegation` |
+
 ## Canonical Commands
 
 Adapters expose exactly these user-facing command names unless a host tool
@@ -56,6 +69,22 @@ requires a documented alias:
 
 Adapters may expose host-tool aliases, but help text must point back to these
 canonical command names.
+
+## Command To Core Mapping
+
+Every adapter command must load this contract first, then the listed Core Kernel
+entry points. Command prompts may summarize the user intent, but they must not
+replace the referenced workflow or task contract logic.
+
+| command | Core Kernel entry points | default write behavior |
+| :--- | :--- | :--- |
+| `/shiki-init` | `tools-skills/scripts/init.py`; `core-kernel/templates/workspace/.gitignore`; selected `tech-stacks/tech-contracts/<stack>/` | Creates or repairs deterministic Shiki context scaffolding. |
+| `/shiki-status` | `core-kernel/runtime/context_loading.md`; `shiki_context/workspace/active_task.md`; current scope `_plan.md` | Read-only. |
+| `/shiki-next` | `core-kernel/workflows/runner/next.md`; selected `core-kernel/runtime/task_contracts/**/*.yaml`; selected contract `workflow_ref`; `core-kernel/workflows/runner/batch.md` only for non-`single_item` modes | Writes only outputs owned by selected ready item or allowed internal batch/wave items. |
+| `/shiki-modify <target>` | `core-kernel/runtime/context_loading.md`; direct specs and source files for the target; related task contracts when planned work is affected | Bounded edits to requested targets and stale-state updates only when required. |
+| `/shiki-review` | `core-kernel/runtime/context_loading.md`; relevant L2 AS-IS leaf specs; relevant changed source or spec files | Read-only unless the user explicitly changes the task. |
+| `/shiki-sync` | `core-kernel/runtime/task_contracts/sync/plan.yaml`; `core-kernel/runtime/task_contracts/sync/apply_leaf.yaml` | Creates or updates sync plan first, then at most one target leaf spec per apply step. |
+| `/shiki-doctor` | `core-kernel/runtime/task_contracts/doctor/plan.yaml`; `core-kernel/runtime/task_contracts/doctor/apply_item.yaml` | Read-only by default; repairs at most one deterministic item after confirmation. |
 
 ## Execution Modes
 

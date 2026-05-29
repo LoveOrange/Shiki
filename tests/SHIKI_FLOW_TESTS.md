@@ -106,6 +106,8 @@ And no non-English source text, legacy brand references, or organization-specifi
 Given Phase 1 tool-native adapters are installed into a consumer project
 When adapter regression checks run
 Then installed adapter files reference the v1 adapter contract
+And the contract defines the Codex, Claude Code, Gemini CLI, and OpenCode capability matrix
+And each canonical command maps to Core Kernel entry points before host-tool-specific behavior
 And `/shiki-status`, `/shiki-next`, and `/shiki-modify <target>` map to Core Kernel context loading, task contracts, and workflow references
 And adapter execution reports `BLOCKED`, `MANUAL_DECISION`, and verification failures without marking incomplete plan items done.
 
