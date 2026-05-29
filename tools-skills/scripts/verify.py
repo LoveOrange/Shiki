@@ -158,6 +158,7 @@ def verify_core_consistency() -> None:
     cheatsheet = (ROOT / "docs" / "CHEATSHEET.md").read_text(encoding="utf-8")
     phase_contract = (ROOT / "core-kernel/runtime/phase_contract.md").read_text(encoding="utf-8")
     context_loading = (ROOT / "core-kernel/runtime/context_loading.md").read_text(encoding="utf-8")
+    adapter_contract = (ROOT / "user-interface" / "adapters" / "tool_adapter_contract_v1.md").read_text(encoding="utf-8")
     runner_next = (ROOT / "core-kernel" / "workflows" / "runner" / "next.md").read_text(encoding="utf-8")
     runner_apply = (ROOT / "core-kernel" / "workflows" / "runner" / "apply.md").read_text(encoding="utf-8")
     runner_batch = (ROOT / "core-kernel" / "workflows" / "runner" / "batch.md").read_text(encoding="utf-8")
@@ -232,6 +233,53 @@ def verify_core_consistency() -> None:
             raise AssertionError(f"Missing feature-relative target guidance: {needle}")
     if "top-level prompt" not in context_loading:
         raise AssertionError("Missing user-facing top-level prompt guidance")
+
+    # Check the tool-native adapter contract covers the Phase 1 command surface
+    for needle in [
+        "Contract Version: v1",
+        "Shiki Core remains the source of truth",
+        "supports_slash_commands",
+        "supports_skills",
+        "supports_subagents",
+        "supports_project_local_install",
+        "single_item",
+        "bounded_batch",
+        "phase_wave",
+        "subagent_delegation",
+        "Installed Adapter File Expectations",
+        "Regression checks must verify installed adapter files",
+        "BLOCKED",
+        "MANUAL_DECISION",
+        "VERIFICATION_FAILED",
+        "Codex",
+        "Claude Code",
+        "Gemini CLI",
+        "OpenCode",
+    ]:
+        if needle not in adapter_contract:
+            raise AssertionError(f"adapter contract missing expected guidance: {needle}")
+    for command in [
+        "/shiki-init",
+        "/shiki-status",
+        "/shiki-next",
+        "/shiki-modify <target>",
+        "/shiki-review",
+        "/shiki-sync",
+        "/shiki-doctor",
+    ]:
+        if command not in adapter_contract:
+            raise AssertionError(f"adapter contract missing command: {command}")
+    for core_ref in [
+        "core-kernel/runtime/context_loading.md",
+        "core-kernel/workflows/runner/next.md",
+        "core-kernel/workflows/runner/batch.md",
+        "core-kernel/runtime/task_contracts/sync/plan.yaml",
+        "core-kernel/runtime/task_contracts/sync/apply_leaf.yaml",
+        "core-kernel/runtime/task_contracts/doctor/plan.yaml",
+        "core-kernel/runtime/task_contracts/doctor/apply_item.yaml",
+    ]:
+        if core_ref not in adapter_contract:
+            raise AssertionError(f"adapter contract missing Core Kernel reference: {core_ref}")
 
     # Feature overlay specs must carry explicit baseline delta metadata for merge.
     delta_types = ["reuse", "add", "extend", "modify", "deprecate"]

@@ -100,3 +100,11 @@ Given the public Shiki repository
 When maintenance verification runs
 Then the public source excludes local context, caches, and private transfer scripts
 And no non-English source text, legacy brand references, or organization-specific package names remain.
+
+## HIT-013 Adapter Contract Surface
+
+Given Phase 1 tool-native adapters are installed into a consumer project
+When adapter regression checks run
+Then installed adapter files reference the v1 adapter contract
+And `/shiki-status`, `/shiki-next`, and `/shiki-modify <target>` map to Core Kernel context loading, task contracts, and workflow references
+And adapter execution reports `BLOCKED`, `MANUAL_DECISION`, and verification failures without marking incomplete plan items done.
