@@ -20,8 +20,9 @@ AI coding fails most often when the model is asked to infer too much at once:
 - a reply is treated as done before the artifact is valid
 
 Shiki narrows the model's job. The harness owns task routing, context loading,
-state transitions, and validation. The model performs one bounded task against a
-contract.
+state transitions, and validation. The model performs bounded plan items against
+contracts, one at a time by default or as an explicit batch for stronger coding
+agents.
 
 ## Core Ideas
 
@@ -60,7 +61,8 @@ python shiki/tools-skills/scripts/new_feature.py --taskid FEAT-001
 ```
 
 Then use prompts from `docs/CHEATSHEET.md` with your AI coding agent: `scan`,
-`new feature`, `status`, `next`, `review`, `modify`, `sync`, and `doctor`.
+`new feature`, `status`, `next`, `batch`, `review`, `modify`, `sync`, and
+`doctor`.
 
 Publish a human-friendly L0 review site from Shiki L1 specs:
 

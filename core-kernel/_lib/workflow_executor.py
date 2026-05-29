@@ -1,8 +1,8 @@
 """Workflow-executor abstraction for routed Shiki tasks.
 
-Runner/kernel decides *what* the next item is.
-Workflow executors decide *how* to execute that one item by consuming the routed
-task contract and its referenced workflow.
+Runner/kernel decides *what* the next item or explicit batch is. Workflow
+executors decide *how* to execute each routed item by consuming its task contract
+and referenced workflow.
 
 This module intentionally defines only the interface layer so future CLI,
 provider and prompt runners can share one execution shape.

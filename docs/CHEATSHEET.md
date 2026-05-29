@@ -3,8 +3,10 @@
 Copy the relevant prompt into your AI coding agent. Paths assume Shiki is mounted
 as `shiki/` in the consumer project.
 
-`next` advances the current plan by one ready item. `apply` is kept as a
-compatibility entry with the same current behavior.
+`next` advances the current plan by one ready item. `batch` / `auto` lets a
+strong coding agent claim several safe ready items while preserving per-item
+contracts and outputs. `apply` is kept as a compatibility entry with the same
+current behavior as `next`.
 
 ## 1. scan
 
@@ -96,6 +98,31 @@ Steps:
 2. State that this run used the apply compatibility entry.
 3. Stop after one item.
 ```
+
+## 4b. batch
+
+Execute a bounded sequence of safe ready plan items.
+
+```text
+Use Shiki batch.
+
+Load:
+#/shiki/core-kernel/runtime/context_loading.md
+#/shiki/core-kernel/workflows/runner/batch.md
+#/shiki_context/workspace/active_task.md
+
+Steps:
+1. Read active_task.md and the current _plan.md.
+2. Select a bounded batch using runner/batch.md Selection Policy.
+3. State the claimed item ids, why they are safe to batch, and the verification that will close the batch.
+4. For each item, load its task contract from core-kernel/runtime/task_contracts/ and execute its workflow_ref sequentially.
+5. Update output_files after each completed item.
+6. Stop at any batch stop condition, failed check, or required user decision.
+7. Report completed item ids, blocked item id if any, modified files, and verification.
+```
+
+`Use Shiki auto` is an alias for this prompt. The model may choose a smaller
+batch than requested, but it must not cross batch stop conditions.
 
 ## 5. review
 

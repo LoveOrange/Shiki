@@ -3,7 +3,7 @@
 This module is intentionally limited to task routing:
 - inspect plan state
 - determine whether an item is done
-- select the next executable item
+- select the next executable item or safe explicit batch
 - resolve the item's task contract and workflow reference
 
 It does not execute workflow steps. Workflow execution belongs to a dedicated
@@ -67,6 +67,37 @@ def _contract_matches(item, suffix):
     return _contract_ref(item).endswith(suffix)
 
 
+def _expanded_dependencies(depends_on):
+    """Expand comma dependencies, including simple ranges like D1-D6."""
+    if depends_on not in {"", "-"}:
+        needed = [part.strip() for part in depends_on.split(",") if part.strip()]
+    else:
+        needed = []
+    expanded = []
+    for dep in needed:
+        if "-" in dep and len(dep) > 2:
+            try:
+                prefix = dep[0]
+                start = int(dep[1:dep.index("-")])
+                end = int(dep[dep.index("-") + 1:].lstrip(prefix))
+                expanded.extend(f"{prefix}{i}" for i in range(start, end + 1))
+            except (ValueError, IndexError):
+                expanded.append(dep)
+        else:
+            expanded.append(dep)
+    return expanded
+
+
+def _dependencies_satisfied(item, completed):
+    depends_on = item.get("depends_on", "-").strip()
+    return all(dep in completed for dep in _expanded_dependencies(depends_on))
+
+
+def _blocked_output(item):
+    output = item.get("output_files", "").strip().upper()
+    return output.startswith("BLOCKED") or output.startswith("MANUAL_DECISION")
+
+
 def item_done(feature_dir, item):
     """Best-effort completion check for plan items."""
     if _output_stale(item):
@@ -103,28 +134,15 @@ def route_next_item(feature_dir):
     """Return the next executable plan item, task contract and workflow."""
     plan_path = feature_dir / "_plan.md"
     _, items = parse_plan(plan_path)
-    completed = {item.get("id") for item in items if item_done(feature_dir, item)}
+    completed = {
+        item.get("id")
+        for item in items
+        if not _blocked_output(item) and item_done(feature_dir, item)
+    }
 
     for item in items:
-        depends_on = item.get("depends_on", "-").strip()
-        if depends_on not in {"", "-"}:
-            needed = [part.strip() for part in depends_on.split(",") if part.strip()]
-            # Handle range notation like "D1-D6"
-            expanded = []
-            for dep in needed:
-                if "-" in dep and len(dep) > 2:
-                    # Try to expand range like D1-D6
-                    try:
-                        prefix = dep[0]
-                        start = int(dep[1:dep.index("-")])
-                        end = int(dep[dep.index("-") + 1:].lstrip(prefix))
-                        expanded.extend(f"{prefix}{i}" for i in range(start, end + 1))
-                    except (ValueError, IndexError):
-                        expanded.append(dep)
-                else:
-                    expanded.append(dep)
-            if any(dep not in completed for dep in expanded):
-                continue
+        if not _dependencies_satisfied(item, completed):
+            continue
         if item_done(feature_dir, item):
             continue
         contract = load_task_contract(item["contract"].strip("`"))
@@ -135,6 +153,59 @@ def route_next_item(feature_dir):
         )
 
     return None
+
+
+def route_batch_items(feature_dir, max_items=3, allow_phase_crossing=False):
+    """Return a safe ordered batch of executable plan items.
+
+    The returned routes are still atomic. Callers execute each route through the
+    normal workflow executor and update output_files before advancing.
+    """
+    if max_items < 1:
+        return []
+
+    plan_path = feature_dir / "_plan.md"
+    _, items = parse_plan(plan_path)
+    completed = {
+        item.get("id")
+        for item in items
+        if not _blocked_output(item) and item_done(feature_dir, item)
+    }
+    routes = []
+    batch_completed = set(completed)
+    batch_phase = None
+
+    for item in items:
+        item_id = item.get("id")
+        if _blocked_output(item):
+            break
+        if item_id in batch_completed and item_done(feature_dir, item):
+            continue
+        if item.get("phase") == "Merge":
+            break
+        if not _dependencies_satisfied(item, batch_completed):
+            continue
+        if item_done(feature_dir, item):
+            batch_completed.add(item_id)
+            continue
+
+        phase = item.get("phase", "")
+        if batch_phase is None:
+            batch_phase = phase
+        elif phase != batch_phase and not allow_phase_crossing:
+            break
+
+        contract = load_task_contract(item["contract"].strip("`"))
+        routes.append(TaskRoute(
+            item=item,
+            contract=contract,
+            workflow_ref=contract["workflow_ref"],
+        ))
+        batch_completed.add(item_id)
+        if len(routes) >= max_items:
+            break
+
+    return routes
 
 
 def select_next_item(feature_dir):

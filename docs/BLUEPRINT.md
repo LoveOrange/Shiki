@@ -21,8 +21,9 @@ tech contracts rather than being hard-coded into core.
 
 Most AI coding failures are workflow failures before they are model failures.
 Shiki narrows the model's task. The harness owns decomposition, context assembly,
-state transitions, and validation. The model performs one bounded task against a
-contract.
+state transitions, and validation. The stable atom is the bounded plan item and
+its task contract; capable runners may execute several safe atoms in one explicit
+batch without weakening that ledger.
 
 ## Design Principles
 

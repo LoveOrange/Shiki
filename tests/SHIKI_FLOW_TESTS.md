@@ -62,6 +62,14 @@ When Code tasks run
 Then generated code changes only facts declared by those specs
 And plan output_files are updated.
 
+## HIT-008A Batch Runner Preserves Task Atoms
+
+Given multiple ready feature plan items and a capable coding agent
+When batch or auto runs
+Then each selected item still loads its own task contract and workflow
+And output_files are updated after each completed item
+And the batch stops at Merge, MANUAL_DECISION, BLOCKED, missing input, ambiguous ownership, baseline writes, or failed verification.
+
 ## HIT-009 Merge Writes Baseline
 
 Given accepted feature overlay specs and verification evidence

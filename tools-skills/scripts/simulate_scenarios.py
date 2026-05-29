@@ -53,6 +53,7 @@ def test_happy_path() -> None:
             "## 3. status",
             "## 4. next",
             "## 4a. apply",
+            "## 4b. batch",
             "## 5. review",
             "## 6. modify",
             "## 7. doctor",
@@ -93,6 +94,7 @@ def test_happy_path() -> None:
                 for heading in ["## Load", "## Steps", "## Verification"]:
                     check(heading in text, f"{phase}/{name} has {heading}", warn_only=True)
     check((SHIKI_ROOT / "core-kernel" / "workflows" / "runner" / "next.md").exists(), "runner/next workflow exists")
+    check((SHIKI_ROOT / "core-kernel" / "workflows" / "runner" / "batch.md").exists(), "runner/batch workflow exists")
 
 
 def test_tech_stack_contracts() -> None:

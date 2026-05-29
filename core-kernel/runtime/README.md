@@ -14,6 +14,7 @@ State principles:
 - L2 AS-IS leaf specs are the default Code/Test fact source.
 - `code_contract.md` is only an optional implementation slice.
 - Project/module/feature scopes use `README.md` for humans, `index.md` for routing, and `_plan.md` for task/output ledgers.
+- Plan items stay atomic even when a capable runner uses `batch` or `auto` to execute several safe ready items in one invocation.
 - Multi-step commands such as `sync` and `doctor` create workspace temporary plans before changing files, then execute one item at a time.
 
 Use `phase_contract.md` only as fallback guidance when plan or gate state is

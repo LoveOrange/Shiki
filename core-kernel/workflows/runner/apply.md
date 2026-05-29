@@ -24,7 +24,7 @@
 
 ## Forbidden
 
-- Do not execute multiple items in one run.
+- Do not execute multiple items in one `apply` run; use `runner/batch.md` when an explicit batch is requested.
 - Do not skip L2 specs, alignment checks, or drift/test gates.
 - Do not make the runner perform workflow execution itself.
 - Do not load the full prompt docs, full module tree, or full source tree by default.

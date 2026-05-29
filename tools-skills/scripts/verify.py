@@ -160,6 +160,7 @@ def verify_core_consistency() -> None:
     context_loading = (ROOT / "core-kernel/runtime/context_loading.md").read_text(encoding="utf-8")
     runner_next = (ROOT / "core-kernel" / "workflows" / "runner" / "next.md").read_text(encoding="utf-8")
     runner_apply = (ROOT / "core-kernel" / "workflows" / "runner" / "apply.md").read_text(encoding="utf-8")
+    runner_batch = (ROOT / "core-kernel" / "workflows" / "runner" / "batch.md").read_text(encoding="utf-8")
     feature_plan_template = (ROOT / "core-kernel" / "templates" / "feature" / "_plan.md").read_text(encoding="utf-8")
     require_workspace_ignore_policy(ROOT / "core-kernel" / "templates" / "workspace" / ".gitignore")
 
@@ -170,6 +171,7 @@ def verify_core_consistency() -> None:
         "## 3. status",
         "## 4. next",
         "## 4a. apply",
+        "## 4b. batch",
         "## 5. review",
         "## 6. modify",
         "## 7. doctor",
@@ -223,7 +225,7 @@ def verify_core_consistency() -> None:
 
     # Check runtime guidance
     for needle in ["task contract", "core-kernel/runtime/task_contracts/"]:
-        if needle not in context_loading + runner_next + runner_apply:
+        if needle not in context_loading + runner_next + runner_apply + runner_batch:
             raise AssertionError(f"Missing task-contract runtime guidance: {needle}")
     for needle in ["feature-root relative", "not baseline"]:
         if needle not in context_loading + runner_next + feature_plan_template:
@@ -459,6 +461,27 @@ def verify_fixture_workflow() -> None:
             raise AssertionError("design_init expansion must update feature index.md")
         if "Baseline Delta" not in feature_index_text or "reuse/add/extend/modify/deprecate" not in feature_index_text:
             raise AssertionError("feature index.md must preserve baseline delta guidance")
+
+        batch_select = subprocess.check_output(
+            [
+                sys.executable,
+                "-c",
+                (
+                    "import sys; "
+                    "sys.path.insert(0, 'shiki/core-kernel'); "
+                    "from pathlib import Path; "
+                    "from _lib.kernel import route_batch_items; "
+                    "routes = route_batch_items(Path('shiki_context/features/FEAT-VERIFY'), max_items=2); "
+                    "print(','.join(route.item['id'] for route in routes)); "
+                    "print(','.join(route.contract['id'] for route in routes))"
+                ),
+            ],
+            cwd=str(project),
+            env=env,
+            text=True,
+        ).strip().splitlines()
+        if batch_select != ["D1,D2", "model,persistence"]:
+            raise AssertionError(f"batch routing did not preserve ordered task atoms: {batch_select!r}")
 
 
 def verify_publish_docs() -> None:
