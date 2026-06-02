@@ -8,6 +8,7 @@ engineering files:
 
 - bounded phases
 - atomic tasks
+- adaptive execution sessions
 - minimal context loading
 - rule-pack-driven behavior
 - file-backed state
@@ -20,10 +21,11 @@ tech contracts rather than being hard-coded into core.
 ## Product Thesis
 
 Most AI coding failures are workflow failures before they are model failures.
-Shiki narrows the model's task. The harness owns decomposition, context assembly,
-state transitions, and validation. The stable atom is the bounded plan item and
-its task contract; capable runners may execute several safe atoms in one explicit
-batch without weakening that ledger.
+Shiki narrows the model's task. The harness owns decomposition, context
+assembly, topology selection, state transitions, review gates, and validation.
+The stable atom is the bounded plan item and its task contract; capable runners
+may execute several safe atoms inside one adaptive execution session without
+weakening that ledger.
 
 ## Design Principles
 
@@ -60,9 +62,15 @@ agents without changing task contracts.
 ### 6. Verification Gates Are Mandatory
 
 An output is not done because the model replied. It is done when declared
-checks pass and plan output is recorded.
+checks pass, review passes, evidence is recorded, and plan state is updated.
 
-### 7. Human Control Stays Visible
+### 7. Tool Topology Is Internal
+
+Users should not choose single-agent or agent-team mode. Shiki detects adapter
+capabilities and chooses the execution topology internally from plan graph,
+context budget, risk, and stop conditions.
+
+### 8. Human Control Stays Visible
 
 Humans can edit briefs, override tech contracts, retry tasks, mark gates blocked,
 accept or reject design, and merge or discard feature overlays.

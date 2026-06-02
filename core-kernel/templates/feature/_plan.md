@@ -15,21 +15,23 @@ Task routing, output tracking, and stale-state ledger.
 `shiki_context/features/{feature}/modules/{module}/...`, not baseline
 `shiki_context/modules/{module}/...`.
 
-| id | phase | target | depends_on | contract | output_files |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| D1 | Design | `modules/{module}/designs/model.md` | - | `core-kernel/runtime/task_contracts/design/model.yaml` | |
-| D2 | Design | `modules/{module}/designs/persistence.md` | D1 | `core-kernel/runtime/task_contracts/design/persistence.yaml` | |
-| D3 | Design | `modules/{module}/designs/acl.md` | D1 | `core-kernel/runtime/task_contracts/design/acl.yaml` | |
-| D4 | Design | `modules/{module}/designs/component.md` | D1,D2,D3 | `core-kernel/runtime/task_contracts/design/component.yaml` | |
-| D5 | Design | `modules/{module}/entrances/{entrance}.md` | D1 | `core-kernel/runtime/task_contracts/design/entrance_spec.yaml` | |
-| D6 | Design | `modules/{module}/flows/{scenario}.md` | D1,D2,D3,D4 | `core-kernel/runtime/task_contracts/design/flow.yaml` | |
-| C1 | Code | - | D1,D6 | `core-kernel/runtime/task_contracts/code/entity.yaml` | |
-| C2 | Code | - | D1,D4 | `core-kernel/runtime/task_contracts/code/interface_skeletons.yaml` | |
-| C3 | Code | - | C2,D3,D6 | `core-kernel/runtime/task_contracts/code/feature_logic.yaml` | |
-| C4 | Code | - | C1,C2,D2,D3 | `core-kernel/runtime/task_contracts/code/infrastructure.yaml` | |
-| C5 | Code | - | C2,D4,D5 | `core-kernel/runtime/task_contracts/code/adapter.yaml` | |
-| M1 | Merge | baseline | C5 | `core-kernel/runtime/task_contracts/merge/feature_merge.yaml` | |
+| id | phase | target | depends_on | contract | status | output_files | evidence | review_result |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| D1 | Design | `modules/{module}/designs/model.md` | - | `core-kernel/runtime/task_contracts/design/model.yaml` | READY | | | |
+| D2 | Design | `modules/{module}/designs/persistence.md` | D1 | `core-kernel/runtime/task_contracts/design/persistence.yaml` | READY | | | |
+| D3 | Design | `modules/{module}/designs/acl.md` | D1 | `core-kernel/runtime/task_contracts/design/acl.yaml` | READY | | | |
+| D4 | Design | `modules/{module}/designs/component.md` | D1,D2,D3 | `core-kernel/runtime/task_contracts/design/component.yaml` | READY | | | |
+| D5 | Design | `modules/{module}/entrances/{entrance}.md` | D1 | `core-kernel/runtime/task_contracts/design/entrance_spec.yaml` | READY | | | |
+| D6 | Design | `modules/{module}/flows/{scenario}.md` | D1,D2,D3,D4 | `core-kernel/runtime/task_contracts/design/flow.yaml` | READY | | | |
+| C1 | Code | - | D1,D6 | `core-kernel/runtime/task_contracts/code/entity.yaml` | READY | | | |
+| C2 | Code | - | D1,D4 | `core-kernel/runtime/task_contracts/code/interface_skeletons.yaml` | READY | | | |
+| C3 | Code | - | C2,D3,D6 | `core-kernel/runtime/task_contracts/code/feature_logic.yaml` | READY | | | |
+| C4 | Code | - | C1,C2,D2,D3 | `core-kernel/runtime/task_contracts/code/infrastructure.yaml` | READY | | | |
+| C5 | Code | - | C2,D4,D5 | `core-kernel/runtime/task_contracts/code/adapter.yaml` | READY | | | |
+| M1 | Merge | baseline | C5 | `core-kernel/runtime/task_contracts/merge/feature_merge.yaml` | READY | | | |
 
 Delete rows that do not apply.
 When a Spec -> Spec update invalidates downstream completed work, mark the affected
-item `output_files` as `STALE: <reason>` so the runner treats it as unfinished.
+item `status` as `STALE` and record the reason in `review_result`. Older plans
+may continue to mark `output_files` as `STALE: <reason>` until doctor migrates
+the plan.

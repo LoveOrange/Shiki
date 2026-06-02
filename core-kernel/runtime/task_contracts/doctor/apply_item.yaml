@@ -16,13 +16,16 @@ checks:
 - current row has contract doctor/apply_item.yaml
 - user confirmation is recorded in doctor_plan.md Meta
 - row is deterministic and not marked MANUAL_DECISION
+- plan_schema repairs preserve task ids, targets, dependencies, and contracts
 evidence_rules:
 - execute only the current row
 - never rewrite business spec bodies during doctor repair
 - never run git index operations
+- record status, output_files, evidence, and review_result when those columns exist
 retry_policy:
   max_attempts: 1
 done_condition:
 - current row output_files records changed files, NOOP, BLOCKED, or MANUAL_DECISION
+- current row status records DONE, BLOCKED, MANUAL_DECISION, or VERIFICATION_FAILED when status exists
 - no unrelated context store files are changed
 workflow_ref: core-kernel/workflows/doctor/apply_item.md

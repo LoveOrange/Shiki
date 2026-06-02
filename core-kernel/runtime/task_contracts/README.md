@@ -11,6 +11,7 @@ They are the routing truth and describe:
 - test specs and check rules
 - retry policy
 - done condition
+- review and evidence expectations through the execution session
 
 `core-kernel/workflows/*.md` remain human-readable prompt views; YAML task contracts carry the executable routing truth.
 
@@ -30,3 +31,8 @@ These contracts must also stay atomic:
 - `sync/apply_leaf.yaml` syncs exactly one leaf spec.
 - `doctor/plan.yaml` diagnoses read-only by default and creates a repair plan only after confirmation.
 - `doctor/apply_item.yaml` executes exactly one deterministic repair item.
+
+`/shiki-next` may advance several ready contract-backed items inside one
+adaptive execution session, but the session must still load each task contract
+separately and record each item's status, output_files, evidence, and
+review_result independently when those plan columns exist.

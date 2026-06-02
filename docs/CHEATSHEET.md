@@ -52,9 +52,12 @@ Primary tool-native commands:
 /shiki-next
 /shiki-modify <target>
 /shiki-review
-/shiki-sync
 /shiki-doctor
 ```
+
+`/shiki-sync` remains an advanced compatibility command for explicit Code ->
+Spec synchronization, but the daily command surface should route most sync needs
+through `modify`, `review`, or `doctor`.
 
 Generated project-local files:
 
@@ -74,11 +77,12 @@ Command invocation after install:
 | Gemini CLI | `/shiki-status`, `/shiki-next`, `/shiki-modify <target>` | run `/commands reload` after `.gemini/commands/` changes |
 | OpenCode | `/shiki-status`, `/shiki-next`, `/shiki-modify <target>` | restart or reload the project session after `.opencode/commands/` changes |
 
-`/shiki-next` is the user-facing runner. It advances conservatively by one ready
-item by default. Strong adapters may use bounded batch, phase-wave, or subagent
-execution internally only when Core Kernel stop rules allow it; each selected
-item still loads its own task contract and updates its own `output_files` only
-after verification passes. Merge remains root-controlled by default.
+`/shiki-next` is the user-facing coordinator. It starts an adaptive execution
+session and does not ask the user to choose single-agent or agent-team mode.
+Strong adapters may use bounded batch, phase-wave, or subagent execution
+internally only when Core Kernel stop rules allow it; each selected item still
+loads its own task contract and updates plan state only after verification and
+review pass. Merge remains root-controlled by default.
 
 The prompt blocks below are fallback entries for agents without an installed
 adapter or for manually inspecting adapter behavior.
@@ -129,31 +133,34 @@ Load:
 Steps:
 1. Read active_task.md.
 2. Read the current scope _plan.md.
-3. Check depends_on and output_files.
-4. Report the next runnable item, gate status, blockers, and missing files.
+3. Check depends_on, status, output_files, evidence, and review_result when present.
+4. Report adapter capability detection, next execution window, gate status, blockers, and missing files.
 5. Do not execute the item.
 ```
 
 ## 4. next
 
-Execute exactly one ready plan item.
+Start an adaptive execution session. The coordinator chooses single-agent or
+agent-team topology automatically; users do not pass a mode.
 
 ```text
 Use Shiki next.
 
 Load:
 #/shiki/core-kernel/runtime/context_loading.md
+#/shiki/core-kernel/runtime/execution_session.md
 #/shiki/core-kernel/workflows/runner/next.md
 #/shiki_context/workspace/active_task.md
 
 Steps:
 1. Read active_task.md and the current _plan.md.
-2. Select the first item whose dependencies are satisfied and output_files are empty or marked STALE.
-3. Load its task contract from core-kernel/runtime/task_contracts/.
-4. Load the workflow_ref, required template, and selected tech contract slices.
-5. Execute only that workflow.
-6. Update output_files for the completed item.
-7. Stop.
+2. Detect adapter capabilities from .shiki/adapters/<tool>/manifest.json when present.
+3. Select a bounded execution window from ready plan items.
+4. State the selected topology, claimed item ids, review gate, and verification.
+5. For each item, load its task contract from core-kernel/runtime/task_contracts/ before workflow_ref.
+6. Execute one item, review it, verify it, and update status/output_files/evidence/review_result only after it passes.
+7. Re-evaluate whether to continue after each item.
+8. Stop at phase gate, failed review, failed verification, blocker, manual decision, unsafe boundary, or context budget boundary.
 ```
 
 ## 4a. apply
@@ -169,9 +176,9 @@ Load:
 #/shiki_context/workspace/active_task.md
 
 Steps:
-1. Execute one ready item exactly as `next` would.
+1. Execute the same adaptive session as `next`.
 2. State that this run used the apply compatibility entry.
-3. Stop after one item.
+3. Stop at the same session boundaries as `next`.
 ```
 
 ## 4b. batch
@@ -190,12 +197,13 @@ Load:
 
 Steps:
 1. Read active_task.md and the current _plan.md.
-2. Select a bounded batch using runner/batch.md Selection Policy.
-3. State the claimed item ids, why they are safe to batch, and the verification that will close the batch.
+2. Select a bounded execution window using runner/batch.md Selection Policy.
+3. State the selected topology, claimed item ids, why they are safe, and the review/verification that will close the window.
 4. For each item, load its task contract from core-kernel/runtime/task_contracts/ and execute its workflow_ref sequentially.
-5. Update output_files after each completed item.
-6. Stop at any batch stop condition, failed check, or required user decision.
-7. Report completed item ids, blocked item id if any, modified files, and verification.
+5. Run review and verification before marking an item done.
+6. Update status/output_files/evidence/review_result after each completed item when those columns exist.
+7. Stop at any window stop condition, failed review, failed check, or required user decision.
+8. Report completed item ids, blocked item id if any, modified files, review results, evidence, and verification.
 ```
 
 `Use Shiki auto` is an alias for this prompt. The model may choose a smaller

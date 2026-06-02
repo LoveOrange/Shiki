@@ -72,17 +72,20 @@ Gemini loads the adapter contract, this adapter document,
 `core-kernel/runtime/context_loading.md`,
 `shiki_context/workspace/active_task.md`, and the current scope `_plan.md`.
 It reports active scope, next runnable item, gate state, blockers, missing
-files, and confirms that no edits were made.
+files, adapter capability detection, candidate execution window, likely topology,
+and confirms that no edits were made.
 
 ### `/shiki-next`
 
 Gemini loads the adapter contract, this adapter document,
 `core-kernel/runtime/context_loading.md`,
+`core-kernel/runtime/execution_session.md`,
 `core-kernel/workflows/runner/next.md`, the active task, the current plan, and
-the selected task contract before loading the contract `workflow_ref`.
-It states the selected internal execution mode before edits, defaults to
-`single_item`, updates `output_files` only after verification passes, and stops
-on the adapter contract stop conditions.
+selected task contracts before loading each contract `workflow_ref`. Gemini does
+not ask the user to choose single-agent or agent-team mode. It auto-selects
+`single_agent_session`, states the selected topology and internal execution mode
+before edits, updates plan state only after verification and review pass, and
+stops on the adapter contract stop conditions.
 
 ### `/shiki-modify <target>`
 
@@ -94,14 +97,15 @@ target is missing or ambiguous, edits only the requested bounded target, marks
 downstream completed items `STALE` only when affected, and runs the smallest
 meaningful verification.
 
-## `/shiki-next` Mapping
+## `/shiki-next` Adaptive Session
 
-Gemini runs `/shiki-next` in `single_item` mode by default. It may use
-`bounded_batch` only when `core-kernel/workflows/runner/batch.md` permits every
-claimed item and all stop conditions are clear. Each item still loads its own
-task contract and updates its own `output_files` only after verification passes.
-Gemini CLI has no Shiki subagent surface, so this adapter must not select
-`phase_wave` or `subagent_delegation`.
+Gemini runs `/shiki-next` as `single_agent_session` because Gemini CLI has no
+Shiki subagent surface. It may use `bounded_batch` inside that session only when
+`core-kernel/workflows/runner/batch.md` permits every claimed item and all stop
+conditions are clear. Each item still loads its own task contract, runs review,
+and updates its own `status`, `output_files`, `evidence`, and `review_result`
+only after verification and review pass. This adapter must not select
+`agent_team_session`, `phase_wave`, or `subagent_delegation`.
 
 ## Install Behavior
 
@@ -125,4 +129,5 @@ verify:
 - `/shiki-modify <target>` generated content forwards `{{args}}` and blocks
   missing or ambiguous targets.
 - The Gemini manifest records `gemini-cli`, project-local install support, and
-  only `single_item` and `bounded_batch` execution modes.
+  only `single_agent_session` execution topology plus single-agent execution
+  modes.

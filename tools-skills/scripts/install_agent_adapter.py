@@ -50,7 +50,7 @@ COMMANDS = [
         ],
         "body": [
             "Read active_task.md and the current plan.",
-            "Report the next runnable item, gate status, blockers, and missing files.",
+            "Report adapter capability detection, likely next execution topology, candidate execution window, gate status, blockers, and missing files.",
             "Do not edit files.",
         ],
     },
@@ -60,16 +60,20 @@ COMMANDS = [
         "description": "Execute the next allowed Shiki plan work through Core Kernel contracts.",
         "loads": [
             "core-kernel/runtime/context_loading.md",
+            "core-kernel/runtime/execution_session.md",
             "core-kernel/workflows/runner/next.md",
+            "core-kernel/workflows/runner/batch.md",
             f"{CONTEXT_ROOT}/workspace/active_task.md",
             "current scope _plan.md",
             "selected core-kernel/runtime/task_contracts/**/*.yaml",
         ],
         "body": [
-            "Select the first ready item from the current plan.",
-            "Load its task contract before loading workflow text.",
-            "Execute only the selected Core Kernel workflow unless the adapter contract explicitly permits a bounded internal mode.",
-            "Update output_files only after verification passes.",
+            "Start the adaptive execution session described by execution_session.md.",
+            "Detect adapter capabilities from .shiki/adapters/<tool>/manifest.json when available.",
+            "Select a bounded execution window from the current plan without asking the user for single-agent or agent-team mode.",
+            "Load each selected task contract before loading workflow text.",
+            "Run review and verification gates before marking any item done.",
+            "Update status, output_files, evidence, and review_result when those columns exist; preserve output_files compatibility for older plans.",
         ],
     },
     {
@@ -155,9 +159,11 @@ TOOL_SPECS = {
             "supports_slash_commands": True,
             "supports_skills": True,
             "supports_subagents": False,
+            "supports_isolated_worker_context": False,
             "supports_project_local_install": True,
         },
         "execution_modes": ["single_item", "bounded_batch"],
+        "execution_topologies": ["single_agent_session"],
     },
     "claude": {
         "manifest_tool": "claude-code",
@@ -170,9 +176,11 @@ TOOL_SPECS = {
             "supports_slash_commands": True,
             "supports_skills": False,
             "supports_subagents": True,
+            "supports_isolated_worker_context": True,
             "supports_project_local_install": True,
         },
         "execution_modes": ["single_item", "bounded_batch", "phase_wave", "subagent_delegation"],
+        "execution_topologies": ["single_agent_session", "agent_team_session"],
     },
     "gemini": {
         "manifest_tool": "gemini-cli",
@@ -184,9 +192,11 @@ TOOL_SPECS = {
             "supports_slash_commands": True,
             "supports_skills": False,
             "supports_subagents": False,
+            "supports_isolated_worker_context": False,
             "supports_project_local_install": True,
         },
         "execution_modes": ["single_item", "bounded_batch"],
+        "execution_topologies": ["single_agent_session"],
     },
     "opencode": {
         "manifest_tool": "opencode",
@@ -203,9 +213,11 @@ TOOL_SPECS = {
             "supports_slash_commands": True,
             "supports_skills": True,
             "supports_subagents": True,
+            "supports_isolated_worker_context": True,
             "supports_project_local_install": True,
         },
         "execution_modes": ["single_item", "bounded_batch", "phase_wave", "subagent_delegation"],
+        "execution_topologies": ["single_agent_session", "agent_team_session"],
     },
 }
 
@@ -269,6 +281,7 @@ def command_prompt(command: dict, source_root: str, arg_token: str) -> str:
         "Rules:\n"
         "- Follow Shiki Tool Adapter Contract v1.\n"
         "- Treat Shiki Core Kernel as the source of truth for plan routing, task contracts, workflow binding, context loading, evidence, and gate state.\n"
+        "- Do not ask the user to choose single-agent or agent-team mode; use adapter metadata and Core Kernel session policy.\n"
         "- Report BLOCKED, MANUAL_DECISION, and VERIFICATION_FAILED using the adapter contract fields.\n"
         + args
         + "\nSteps:\n"
@@ -289,13 +302,15 @@ def claude_command_prompt(command: dict, source_root: str, arg_token: str) -> st
     if command["name"] != "shiki-next":
         return prompt + notes
     notes += (
-        "- Default to single_item mode and state the selected execution mode before edits.\n"
+        "- Load core-kernel/runtime/execution_session.md and auto-select topology before edits.\n"
+        "- Do not ask the user to choose single-agent or agent-team mode.\n"
+        "- State the selected topology and selected execution mode before edits.\n"
         "- Load core-kernel/workflows/runner/batch.md before selecting bounded_batch, phase_wave, or subagent_delegation.\n"
-        "- Use bounded_batch, phase_wave, or subagent_delegation only when core-kernel/workflows/runner/batch.md allows every claimed item and all stop conditions are clear.\n"
-        "- Keep the root Claude Code session responsible for plan state, dependency order, output_files updates, and verification.\n"
-        "- Before delegation, prepare a root assignment that lists the selected internal execution mode, each item id, stage, target, task contract, workflow_ref, dependencies checked, direct context files, batch stop-condition check result, and verification command.\n"
+        "- Use agent_team_session, bounded_batch, phase_wave, or subagent_delegation only when the manifest and core-kernel/workflows/runner/batch.md allow every claimed item and all stop conditions are clear.\n"
+        "- Keep the root Claude Code session responsible for plan state, dependency order, output_files updates, evidence, review_result, and verification.\n"
+        "- Before delegation, prepare a root assignment that lists the selected topology, selected internal execution mode, each item id, stage, target, task contract, workflow_ref, dependencies checked, direct context files, batch stop-condition check result, verification command, and review gate.\n"
         "- Use the shiki-phase-wave subagent only for bounded Design or Code phase waves selected by the root session.\n"
-        "- After a subagent returns, verify each item in root context and update output_files only for verified items.\n"
+        "- After a subagent returns, verify and review each item in root context and update status, output_files, evidence, and review_result only for passing items.\n"
         "- Do not delegate Merge; Merge phase remains root-controlled by default.\n"
     )
     return prompt + notes
@@ -314,9 +329,11 @@ def codex_command_prompt(command: dict, source_root: str, arg_token: str) -> str
         notes += "- Keep this command read-only and confirm no edits were made.\n"
     if command["name"] == "shiki-next":
         notes += (
-            "- Default to single_item mode.\n"
-            "- Use bounded_batch only when core-kernel/workflows/runner/batch.md allows every claimed item and all stop conditions are clear.\n"
-            "- State the selected internal execution mode before edits and update output_files only after verification passes.\n"
+            "- Load core-kernel/runtime/execution_session.md and auto-select topology before edits.\n"
+            "- Do not ask the user to choose single-agent or agent-team mode.\n"
+            "- Codex uses single_agent_session; do not select agent_team_session, phase_wave, or subagent_delegation.\n"
+            "- Use bounded_batch only inside single_agent_session when core-kernel/workflows/runner/batch.md allows every claimed item and all stop conditions are clear.\n"
+            "- State the selected topology and selected internal execution mode before edits and update status, output_files, evidence, and review_result only after verification and review pass.\n"
         )
     if command["name"] == "shiki-modify":
         notes += "- Treat $ARGUMENTS as the required /shiki-modify <target> target and requested change text; return BLOCKED when the target is missing or ambiguous.\n"
@@ -342,11 +359,14 @@ def gemini_command_prompt(command: dict, source_root: str, arg_token: str) -> st
         )
     if command["name"] == "shiki-next":
         notes += (
-            "- Default to single_item mode and state the selected internal execution mode before edits.\n"
+            "- Load core-kernel/runtime/execution_session.md and auto-select topology before edits.\n"
+            "- Do not ask the user to choose single-agent or agent-team mode.\n"
+            "- Gemini CLI uses single_agent_session and must not select agent_team_session.\n"
+            "- State the selected topology and selected internal execution mode before edits.\n"
             "- Load core-kernel/workflows/runner/batch.md before selecting bounded_batch.\n"
             "- Use bounded_batch only when core-kernel/workflows/runner/batch.md allows every claimed item and all stop conditions are clear.\n"
             "- Gemini CLI has no Shiki subagent surface; do not use phase_wave or subagent_delegation.\n"
-            "- Update output_files only after verification passes.\n"
+            "- Update status, output_files, evidence, and review_result only after verification and review pass.\n"
         )
     return prompt + notes
 
@@ -371,12 +391,14 @@ def opencode_command_prompt(command: dict, source_root: str, arg_token: str) -> 
         )
     if command["name"] == "shiki-next":
         notes += (
-            "- Default to single_item mode and state the selected internal execution mode before edits.\n"
+            "- Load core-kernel/runtime/execution_session.md and auto-select topology before edits.\n"
+            "- Do not ask the user to choose single-agent or agent-team mode.\n"
+            "- State the selected topology and selected internal execution mode before edits.\n"
             "- Load core-kernel/workflows/runner/batch.md before selecting bounded_batch, phase_wave, or subagent_delegation.\n"
-            "- Use bounded_batch, phase_wave, or subagent_delegation only when core-kernel/workflows/runner/batch.md allows every claimed item and all stop conditions are clear.\n"
-            "- Before delegation, prepare a root assignment that lists the selected internal execution mode, each item id, stage, target, task contract, workflow_ref, dependencies checked, direct context files, batch stop-condition check result, and verification command.\n"
+            "- Use agent_team_session, bounded_batch, phase_wave, or subagent_delegation only when the manifest and core-kernel/workflows/runner/batch.md allow every claimed item and all stop conditions are clear.\n"
+            "- Before delegation, prepare a root assignment that lists the selected topology, selected internal execution mode, each item id, stage, target, task contract, workflow_ref, dependencies checked, direct context files, batch stop-condition check result, verification command, and review gate.\n"
             "- Delegate to shiki-phase-wave only for explicitly assigned Design or Code items whose dependencies and stop conditions are clear.\n"
-            "- After a subagent returns, verify each item in shiki-runner context and update output_files only for verified items.\n"
+            "- After a subagent returns, verify and review each item in shiki-runner context and update status, output_files, evidence, and review_result only for passing items.\n"
             "- Merge phase remains root-controlled by default.\n"
         )
     if command["name"] == "shiki-review":
@@ -451,6 +473,7 @@ def manifest_content(tool_key: str, spec: dict, source_root: str) -> str:
         "context_root": CONTEXT_ROOT,
         "capabilities": spec["capabilities"],
         "execution_modes": spec["execution_modes"],
+        "execution_topologies": spec["execution_topologies"],
         "installed_commands": [command["canonical"] for command in COMMANDS],
         "command_files": [
             f"{spec['command_dir']}/{command['name']}{spec['extension']}" for command in COMMANDS
@@ -483,6 +506,7 @@ def claude_phase_wave_agent_content(source_root: str) -> str:
         f"<!-- {MANAGED_MARKER}; contract={CONTRACT_VERSION}; tool=claude; agent=shiki-phase-wave -->\n\n"
         "You are the Shiki phase-wave worker for Claude Code.\n\n"
         "Required root assignment:\n"
+        "- selected topology, limited to agent_team_session\n"
         "- selected internal execution mode, limited to phase_wave or subagent_delegation\n"
         "- item_ids\n"
         "- phase for each item, limited to Design or Code\n"
@@ -492,7 +516,8 @@ def claude_phase_wave_agent_content(source_root: str) -> str:
         "- dependency check result for each item\n"
         "- batch stop-condition check result from core-kernel/workflows/runner/batch.md\n"
         "- direct context files allowed for each item\n"
-        "- verification command or check requested by the root session\n\n"
+        "- verification command or check requested by the root session\n"
+        "- review gate requested by the root session\n\n"
         "Load before working:\n"
         f"- {source_root}/{CONTRACT_PATH}\n"
         f"- {source_root}/{CLAUDE_ADAPTER_PATH}\n"
@@ -500,22 +525,24 @@ def claude_phase_wave_agent_content(source_root: str) -> str:
         "- Only the direct source/spec context explicitly assigned by the root session.\n\n"
         "Rules:\n"
         "- If any required root assignment field is missing, return BLOCKED without edits.\n"
+        "- If the selected topology is not agent_team_session, return BLOCKED without edits.\n"
         "- If the selected internal execution mode is not phase_wave or subagent_delegation, return BLOCKED without edits.\n"
         "- If the batch stop-condition check result is missing or not clean, return BLOCKED without edits.\n"
         "- Work only on Design or Code items explicitly assigned by the root session.\n"
         "- Do not select plan items yourself.\n"
-        "- Do not edit _plan.md, output_files, active_task.md, sync_plan.md, or doctor_plan.md.\n"
+        "- Do not edit _plan.md, status, output_files, evidence, review_result, active_task.md, sync_plan.md, or doctor_plan.md.\n"
         "- Do not run Merge or baseline writes.\n"
         "- Load each assigned item task contract before its workflow text.\n"
         "- Preserve per-item boundaries even when several items are delegated together.\n"
         "- Stop immediately on BLOCKED, MANUAL_DECISION, missing input, ambiguous ownership, or failed verification.\n"
-        "- Return evidence to the root session instead of marking plan items done.\n\n"
+        "- Return evidence and review inputs to the root session instead of marking plan items done.\n\n"
         "Return shape:\n"
         "- completed_item_ids\n"
         "- blocked_item_id, if any\n"
         "- files_changed\n"
         "- verification_run\n"
         "- verification_result\n"
+        "- review_inputs\n"
         "- required_root_action\n"
     )
 
@@ -542,17 +569,17 @@ def codex_skill_content(source_root: str) -> str:
         f"- {source_root}/{CODEX_ADAPTER_PATH}\n"
         "- shiki_context/workspace/active_task.md when the command needs active Shiki state.\n\n"
         "Happy paths:\n"
-        "- /shiki-status: load context_loading.md, active_task.md, and the current _plan.md; report scope, next runnable item, gates, blockers, and confirm no edits.\n"
-        "- /shiki-next: load runner/next.md, the current plan, the selected task contract, and its workflow_ref; default to single_item and update output_files only after verification passes.\n"
+        "- /shiki-status: load context_loading.md, active_task.md, and the current _plan.md; report scope, adapter capability detection, candidate execution window, gates, blockers, and confirm no edits.\n"
+        "- /shiki-next: load execution_session.md, runner/next.md, the current plan, selected task contracts, and workflow_refs; auto-select single_agent_session and update plan state only after verification and review pass.\n"
         "- /shiki-modify <target>: treat $ARGUMENTS as the required target and requested change text; return BLOCKED when missing or ambiguous; edit only the bounded target and verify.\n\n"
         "Rules:\n"
         "- Respect AGENTS.md and project-level Shiki rules.\n"
         "- Treat Shiki Core Kernel as the source of truth for routing, task contracts, workflow binding, context loading, evidence, and gate state.\n"
         "- Keep command handling thin; load runtime docs and task contracts instead of copying workflow logic into the skill.\n"
         "- /shiki-status and /shiki-review are read-only unless the user explicitly changes the task.\n"
-        "- /shiki-next defaults to single_item mode.\n"
-        "- /shiki-next may use bounded_batch only when core-kernel/workflows/runner/batch.md allows every claimed item.\n"
-        "- Stop before Merge, BLOCKED, MANUAL_DECISION, missing input, ambiguous ownership, baseline writes, or failed verification.\n"
+        "- /shiki-next uses single_agent_session; do not ask the user to choose single-agent or agent-team mode.\n"
+        "- /shiki-next may use bounded_batch inside single_agent_session only when core-kernel/workflows/runner/batch.md allows every claimed item.\n"
+        "- Stop before Merge, BLOCKED, MANUAL_DECISION, missing input, ambiguous ownership, baseline writes, failed review, or failed verification.\n"
         "- Report BLOCKED, MANUAL_DECISION, and VERIFICATION_FAILED with the adapter contract fields.\n"
     )
 
@@ -607,6 +634,7 @@ def opencode_agent_content(agent_name: str, source_root: str) -> str:
             f"<!-- {MANAGED_MARKER}; contract={CONTRACT_VERSION}; tool=opencode; agent={agent_name} -->\n\n"
             "You are the Shiki phase-wave worker for OpenCode.\n\n"
             "Required root assignment:\n"
+            "- selected topology, limited to agent_team_session\n"
             "- selected internal execution mode, limited to phase_wave or subagent_delegation\n"
             "- item_ids\n"
             "- phase for each item, limited to Design or Code\n"
@@ -616,7 +644,8 @@ def opencode_agent_content(agent_name: str, source_root: str) -> str:
             "- dependency check result for each item\n"
             "- batch stop-condition check result from core-kernel/workflows/runner/batch.md\n"
             "- direct context files allowed for each item\n"
-            "- verification command or check requested by shiki-runner\n\n"
+            "- verification command or check requested by shiki-runner\n"
+            "- review gate requested by shiki-runner\n\n"
             "Load before working:\n"
             f"- {source_root}/{CONTRACT_PATH}\n"
             f"- {source_root}/{OPENCODE_ADAPTER_PATH}\n"
@@ -624,11 +653,12 @@ def opencode_agent_content(agent_name: str, source_root: str) -> str:
             "- Only the direct source/spec context explicitly assigned by shiki-runner.\n\n"
             "Rules:\n"
             "- If any required root assignment field is missing, return BLOCKED without edits.\n"
+            "- If the selected topology is not agent_team_session, return BLOCKED without edits.\n"
             "- If the selected internal execution mode is not phase_wave or subagent_delegation, return BLOCKED without edits.\n"
             "- If the batch stop-condition check result is missing or not clean, return BLOCKED without edits.\n"
             "- Work only on Design or Code items explicitly assigned by shiki-runner.\n"
             "- Do not select plan items yourself.\n"
-            "- Do not edit _plan.md, output_files, active_task.md, sync_plan.md, doctor_plan.md, or Merge state.\n"
+            "- Do not edit _plan.md, status, output_files, evidence, review_result, active_task.md, sync_plan.md, doctor_plan.md, or Merge state.\n"
             "- Load each assigned task contract before its workflow text.\n"
             "- Stop on BLOCKED, MANUAL_DECISION, missing input, ambiguous ownership, or failed verification.\n"
             "- Return files changed and verification evidence to shiki-runner.\n\n"
@@ -638,6 +668,7 @@ def opencode_agent_content(agent_name: str, source_root: str) -> str:
             "- files_changed\n"
             "- verification_run\n"
             "- verification_result\n"
+            "- review_inputs\n"
             "- required_root_action\n"
         )
     return (
@@ -664,13 +695,14 @@ def opencode_agent_content(agent_name: str, source_root: str) -> str:
         "- Applicable AGENTS.md files for the current workspace scope.\n"
         "- shiki_context/workspace/active_task.md when the command needs active Shiki state.\n\n"
         "Rules:\n"
-        "- Own plan state, dependency order, output_files updates, and final verification.\n"
+        "- Own plan state, dependency order, status/output_files/evidence/review_result updates, review gates, and final verification.\n"
         "- Load Shiki Core runtime docs and task contracts instead of duplicating workflow logic.\n"
-        "- Use shiki-phase-wave only for bounded Design or Code phase waves whose dependencies and stop conditions are clear.\n"
+        "- Do not ask the user to choose single-agent or agent-team mode; auto-select topology from the manifest and Core Kernel session policy.\n"
+        "- Use shiki-phase-wave only for agent_team_session Design or Code phase waves whose dependencies and stop conditions are clear.\n"
         "- Keep Merge root-controlled by default.\n\n"
         "Happy paths:\n"
-        "- /shiki-status: load context_loading.md, active_task.md, and the current _plan.md; report scope, next runnable item, gates, blockers, and confirm no edits.\n"
-        "- /shiki-next: load runner/next.md, the current plan, the selected task contract, and its workflow_ref; default to single_item and update output_files only after verification passes.\n"
+        "- /shiki-status: load context_loading.md, active_task.md, and the current _plan.md; report scope, adapter capability detection, candidate execution window, gates, blockers, and confirm no edits.\n"
+        "- /shiki-next: load execution_session.md, runner/next.md, the current plan, selected task contracts, and workflow_refs; auto-select topology and update plan state only after verification and review pass.\n"
         "- /shiki-modify <target>: treat $ARGUMENTS as the required target and requested change text; return BLOCKED when missing or ambiguous; edit only the bounded target and verify.\n"
     )
 

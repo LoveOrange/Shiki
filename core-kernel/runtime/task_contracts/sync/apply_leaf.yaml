@@ -23,9 +23,11 @@ evidence_rules:
 - update only facts proven by the listed source files
 - preserve unrelated spec sections
 - write uncertainty as MANUAL_DECISION or BLOCKED, not current valid fact
+- record status, output_files, evidence, and review_result when those columns exist
 retry_policy:
   max_attempts: 1
 done_condition:
 - target leaf spec is updated only within the planned scope, or the row is blocked with a reason
 - workspace/sync_plan.md output_files records the updated spec path or BLOCKED/MANUAL_DECISION
+- workspace/sync_plan.md status records DONE, BLOCKED, MANUAL_DECISION, or VERIFICATION_FAILED when status exists
 workflow_ref: core-kernel/workflows/sync/apply_leaf.md

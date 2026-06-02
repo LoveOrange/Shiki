@@ -26,6 +26,7 @@ adapter metadata:
 | `supports_slash_commands` | The tool can expose user-facing `/shiki-*` commands directly. |
 | `supports_skills` | The tool can install reusable command bodies, skills, rules, or prompt files. |
 | `supports_subagents` | The tool can delegate work to child agents while a root agent retains state control. |
+| `supports_isolated_worker_context` | Delegated workers can receive bounded context without inheriting the full root conversation. |
 | `supports_project_local_install` | The tool can be configured from files inside the consumer project. |
 
 The manifest also records:
@@ -36,6 +37,7 @@ The manifest also records:
 | `tool` | One of `codex`, `claude-code`, `gemini-cli`, or `opencode`. |
 | `installed_commands` | Native command names mapped to the canonical commands below. |
 | `execution_modes` | Supported internal modes from this contract. |
+| `execution_topologies` | Supported coordinator topologies from this contract. |
 | `source_root` | Path to the mounted Shiki framework, normally `shiki/`. |
 | `context_root` | Path to the consumer context store, normally `shiki_context/`. |
 
@@ -45,12 +47,12 @@ Adapters must encode the target tool capability row in their generated
 project-local manifest. The matrix is descriptive; Core Kernel task contracts
 remain authoritative for actual execution and stop decisions.
 
-| tool | manifest `tool` | slash commands | skills or prompt files | subagents | project-local install | allowed execution modes |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| Codex | `codex` | yes | yes | no | yes | `single_item`, `bounded_batch` |
-| Claude Code | `claude-code` | yes | no | yes | yes | `single_item`, `bounded_batch`, `phase_wave`, `subagent_delegation` |
-| Gemini CLI | `gemini-cli` | yes | no | no | yes | `single_item`, `bounded_batch` |
-| OpenCode | `opencode` | yes | yes | yes | yes | `single_item`, `bounded_batch`, `phase_wave`, `subagent_delegation` |
+| tool | manifest `tool` | slash commands | skills or prompt files | subagents | isolated workers | project-local install | allowed topologies |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| Codex | `codex` | yes | yes | no | no | yes | `single_agent_session` |
+| Claude Code | `claude-code` | yes | no | yes | yes | yes | `single_agent_session`, `agent_team_session` |
+| Gemini CLI | `gemini-cli` | yes | no | no | no | yes | `single_agent_session` |
+| OpenCode | `opencode` | yes | yes | yes | yes | yes | `single_agent_session`, `agent_team_session` |
 
 ## Canonical Commands
 
@@ -80,16 +82,24 @@ replace the referenced workflow or task contract logic.
 | :--- | :--- | :--- |
 | `/shiki-init` | `tools-skills/scripts/init.py`; `core-kernel/templates/workspace/.gitignore`; selected `tech-stacks/tech-contracts/<stack>/` | Creates or repairs deterministic Shiki context scaffolding. |
 | `/shiki-status` | `core-kernel/runtime/context_loading.md`; `shiki_context/workspace/active_task.md`; current scope `_plan.md` | Read-only. |
-| `/shiki-next` | `core-kernel/workflows/runner/next.md`; selected `core-kernel/runtime/task_contracts/**/*.yaml`; selected contract `workflow_ref`; `core-kernel/workflows/runner/batch.md` only for non-`single_item` modes | Writes only outputs owned by selected ready item or allowed internal batch/wave items. |
+| `/shiki-next` | `core-kernel/runtime/execution_session.md`; `core-kernel/workflows/runner/next.md`; selected `core-kernel/runtime/task_contracts/**/*.yaml`; selected contract `workflow_ref`; `core-kernel/workflows/runner/batch.md` for execution-window selection | Writes only outputs owned by reviewed items in the adaptive execution session. |
 | `/shiki-modify <target>` | `core-kernel/runtime/context_loading.md`; direct specs and source files for the target; related task contracts when planned work is affected | Bounded edits to requested targets and stale-state updates only when required. |
 | `/shiki-review` | `core-kernel/runtime/context_loading.md`; relevant L2 AS-IS leaf specs; relevant changed source or spec files | Read-only unless the user explicitly changes the task. |
 | `/shiki-sync` | `core-kernel/runtime/task_contracts/sync/plan.yaml`; `core-kernel/runtime/task_contracts/sync/apply_leaf.yaml` | Creates or updates sync plan first, then at most one target leaf spec per apply step. |
 | `/shiki-doctor` | `core-kernel/runtime/task_contracts/doctor/plan.yaml`; `core-kernel/runtime/task_contracts/doctor/apply_item.yaml` | Read-only by default; repairs at most one deterministic item after confirmation. |
 
-## Execution Modes
+## Execution Topologies And Modes
 
-The user-facing command stays stable while the adapter chooses one internal
-execution mode:
+The user-facing command stays stable while the adapter and Core Kernel choose an
+internal topology. Users should not be asked to choose single-agent or
+agent-team mode.
+
+| topology | allowed use |
+| :--- | :--- |
+| `single_agent_session` | Default fallback. One agent/thread owns coordination, execution, review, verification, and plan updates. |
+| `agent_team_session` | Root coordinator delegates bounded Design/Code work to workers only when the manifest supports subagents or isolated worker context. |
+
+Within a topology, the coordinator may use these lower-level execution modes:
 
 | mode | allowed use |
 | :--- | :--- |
@@ -98,11 +108,14 @@ execution mode:
 | `phase_wave` | Claim a phase-bounded wave of items only when every item is independently routable by task contract and the same batch stop rules hold. |
 | `subagent_delegation` | Delegate item execution to child agents only when the root agent owns plan state, dependency order, verification, and final ledger updates. |
 
-`/shiki-next` defaults to `single_item`. Strong tools may use `bounded_batch`,
-`phase_wave`, or `subagent_delegation` behind `/shiki-next`, but they must report
-the selected mode before edits, update each item output separately, and stop at
-the first Core Kernel stop condition. Merge remains root-controlled and must not
-be delegated to autonomous subagents by default.
+`/shiki-next` starts an adaptive execution session. The coordinator detects
+adapter capabilities from the manifest, reads the plan graph, estimates direct
+context cost, and chooses topology automatically. Strong tools may use
+`bounded_batch`, `phase_wave`, or `subagent_delegation` behind `/shiki-next`,
+but they must report the selected topology and internal mode before edits,
+update each item output separately after review passes, and stop at the first
+Core Kernel stop condition. Merge remains root-controlled and must not be
+delegated to autonomous subagents by default.
 
 ## Command Contract
 
@@ -154,6 +167,8 @@ Core mapping:
 Outputs:
 - Current scope and stage.
 - Next runnable item, if any.
+- Adapter capability detection and likely next execution topology.
+- Candidate next execution window when determinable from L0 plan state.
 - Gate state, blockers, missing files, and stale outputs.
 
 Stop conditions:
@@ -171,6 +186,7 @@ Inputs:
 
 Required loaded files:
 - `core-kernel/runtime/context_loading.md`
+- `core-kernel/runtime/execution_session.md`
 - `core-kernel/workflows/runner/next.md`
 - `core-kernel/workflows/runner/batch.md` when using batch, phase wave, or subagent delegation.
 - `shiki_context/workspace/active_task.md`
@@ -179,13 +195,15 @@ Required loaded files:
 - Selected contract `workflow_ref`.
 
 Core mapping:
-- Select the first ready plan item from the current plan.
-- Load the selected task contract before workflow text.
-- Execute the workflow through the selected execution mode.
+- Start the adaptive coordinator session described by `execution_session.md`.
+- Select a bounded execution window from the current plan.
+- Load each selected task contract before workflow text.
+- Execute each item through the automatically selected topology and internal mode.
+- Run review and verification gates before marking any item done.
 
 Outputs:
 - Modified source, spec, or context files required by the selected item.
-- Updated `output_files` for each completed item.
+- Updated `status`, `output_files`, `evidence`, and `review_result` for each completed item when those columns exist.
 - Verification result for each completed item.
 
 Stop conditions:
@@ -194,11 +212,12 @@ Stop conditions:
 - Missing required input, target, contract, workflow, or tech contract.
 - Ambiguous ownership.
 - Merge gate reached without explicit root-controlled merge execution.
+- Failed review.
 - Failed verification.
 
 Verification expectations:
 - Run the task contract checks or the smallest meaningful project verification.
-- Do not mark an item complete until verification passes.
+- Do not mark an item complete until verification and review pass.
 
 ### `/shiki-modify <target>`
 
@@ -386,10 +405,13 @@ needed to expose the canonical commands. Installed files must:
 
 - Reference this contract version.
 - Reference `core-kernel/runtime/context_loading.md`.
+- Reference `core-kernel/runtime/execution_session.md` for `/shiki-next`.
 - Reference Core Kernel task contracts instead of embedding their business logic.
 - Include command help for `/shiki-status`, `/shiki-next`, and `/shiki-modify <target>`.
+- Record execution topology support in adapter manifests.
 - Keep generated adapter metadata separate from `shiki_context/` business facts.
 - Be safe to regenerate without overwriting user-authored source files.
 
 Regression checks must verify installed adapter files mention the canonical
-commands, the adapter contract version, and Core Kernel command references.
+commands, the adapter contract version, adaptive topology metadata, and Core
+Kernel command references.

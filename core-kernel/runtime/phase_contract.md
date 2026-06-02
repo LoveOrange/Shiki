@@ -1,7 +1,7 @@
 # Phase Contract
 
-This document is fallback guidance. Normal execution routes through `_plan.md`, a
-task contract, and a workflow.
+This document is fallback guidance. Normal execution routes through `_plan.md`,
+`execution_session.md`, a task contract, and a workflow.
 
 ## Phase 0: Init
 
@@ -42,6 +42,7 @@ Gate to Code:
 - Required L2 leaf specs for the current Code item exist.
 - Feature `index.md` can route to those leaf specs.
 - Downstream Code/Test items are not marked `STALE`.
+- Design phase review has passed or the coordinator stopped for human review.
 
 ## Phase 3: Code
 
@@ -65,6 +66,7 @@ Gate to Test/Merge:
 - Code item output_files are filled.
 - No output_files entry is marked `STALE`.
 - Spec-code drift/alignment has been checked.
+- Code item review gates and verification passed.
 
 ## Phase 4: Test
 

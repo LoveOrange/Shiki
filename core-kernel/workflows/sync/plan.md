@@ -39,9 +39,9 @@ full prompt docs by default.
 
 ## Target Outputs
 
-| id | phase | target | source_files | depends_on | contract | output_files |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| S1 | Code | `modules/{module}/entrances/{entrance}.md` | `src/.../X.java` | - | `core-kernel/runtime/task_contracts/sync/apply_leaf.yaml` | |
+| id | phase | target | source_files | depends_on | contract | status | output_files | evidence | review_result |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| S1 | Code | `modules/{module}/entrances/{entrance}.md` | `src/.../X.java` | - | `core-kernel/runtime/task_contracts/sync/apply_leaf.yaml` | READY | | | |
 
 ## Manual Decision
 
@@ -53,7 +53,7 @@ full prompt docs by default.
 
 ## Verification
 
-1. Every executable row has target, source_files, contract, and empty output_files.
+1. Every executable row has target, source_files, contract, status, empty output_files, evidence, and review_result.
 2. Every target is a single leaf spec, not a module directory.
 3. Uncertain mappings are recorded as Manual Decision, not current valid fact.
 4. This workflow does not modify `shiki_context/modules/**`, `shiki_context/features/**`, or source files.

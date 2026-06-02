@@ -20,7 +20,9 @@ Small models only need these stable concepts:
 | `stage` | current development stage: Init / Requirement / Design / Code / Test / Merge |
 | `plan` | current task queue; usually `_plan.md`, or a workspace temporary plan for multi-step maintenance |
 | `item` | one atomic row in a plan |
-| `batch` | a bounded ordered claim of ready items for one capable runner invocation |
+| `execution_session` | one `/shiki-next` invocation, from preflight to stop report |
+| `execution_window` | a bounded ordered claim of ready items for one adaptive session |
+| `batch` | compatibility name for an execution window inside a capable session |
 | `index` | leaf spec routing table |
 | `leaf spec` | current valid fact body |
 
@@ -39,9 +41,9 @@ plan.
 | :--- | :--- |
 | `scan` | Use `workspace/_plan.md` to advance the Init queue. |
 | `new feature` | Create a feature bootstrap `_plan.md`, then stop. |
-| `next` | Consume one ready item from the current plan; this is the conservative daily runner. |
+| `next` | Start an adaptive execution session; the coordinator may advance one or more ready items through review gates. |
 | `apply` | Compatibility entry, currently equivalent to `next`. |
-| `batch` / `auto` | Consume a bounded sequence of safe ready items; each item still uses its own task contract and output_files update. |
+| `batch` / `auto` | Compatibility/internal strategy for claiming a bounded execution window; each item still uses its own task contract and plan update. |
 | `modify` | Use the current `_plan.md` for impact analysis and mark downstream completed items `STALE` when affected. |
 | `sync` | Create a workspace temporary plan, then sync one leaf spec at a time. |
 | `doctor` | Diagnose read-only by default; after confirmation create a workspace temporary plan, then repair one deterministic item at a time. |
@@ -52,14 +54,15 @@ plan.
 
 ## Rules
 
-- Plan items are the atomic ledger. Do not merge plan rows just because a strong coding agent can do more in one run.
-- `next` and `apply` execute one plan item per runner invocation, then stop.
-- `batch` and `auto` may execute multiple ready items only when the batch rules in `core-kernel/workflows/runner/batch.md` are satisfied.
-- Every item in a batch must load its own task contract before workflow execution and must update its own `output_files` before advancing.
-- A batch stops before Merge, `MANUAL_DECISION`, `BLOCKED`, missing required inputs, ambiguous target ownership, baseline writes, or any failed verification.
+- Plan items are the atomic ledger. Do not merge plan rows just because a strong coding agent can do more in one session.
+- `next` and `apply` start an adaptive execution session governed by `core-kernel/runtime/execution_session.md`.
+- A session may claim multiple ready items only when the execution-window rules in `core-kernel/workflows/runner/batch.md` and the session stop conditions are satisfied.
+- Every item in a session must load its own task contract before workflow execution and must pass review before plan state is marked done.
+- A session stops before Merge, `MANUAL_DECISION`, `BLOCKED`, missing required inputs, ambiguous target ownership, baseline writes, failed verification, failed review, or a phase gate.
 - Runner/status starts from L0 and does not inspect the whole repository.
 - After selecting an item, load its task contract before loading workflow text.
 - The task contract is the execution contract; the workflow is the readable procedure.
+- New or migrated plans should include `status`, `evidence`, and `review_result` columns; older plans remain compatible through `output_files`.
 - Do not maintain a separate task-kind field; read the current item `contract`.
 - Workflows declare the exact tech contract slices they need.
 - `tech_stacks` comes from `shiki.config.yaml`.

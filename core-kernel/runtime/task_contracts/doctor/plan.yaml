@@ -6,6 +6,7 @@ inputs:
 - current scope _plan.md when present
 - shiki_context/project/index.md
 - necessary module or feature index.md files
+- .shiki/adapters/*/manifest.json when present
 - user selected doctor mode and confirmation
 references:
 - core-kernel/runtime/context_loading.md
@@ -17,6 +18,8 @@ output:
 checks:
 - read-only diagnosis is completed before any repair plan is written
 - destructive or ambiguous changes are excluded from executable rows
+- adapter manifests and command files are checked against the current adapter contract when present
+- plan schema is checked for status, output_files, evidence, and review_result columns
 evidence_rules:
 - write MANUAL_DECISION for uncertain migration or recovery mapping
 - do not modify business spec bodies during planning
@@ -25,4 +28,5 @@ retry_policy:
 done_condition:
 - unconfirmed runs output a diagnosis without file changes
 - confirmed runs create workspace/doctor_plan.md with bounded rows routed to doctor/apply_item.yaml or MANUAL_DECISION items
+- diagnosis reports adapter contract, context interface, plan schema, and spec/index health
 workflow_ref: core-kernel/workflows/doctor/plan.md

@@ -95,6 +95,7 @@ def test_happy_path() -> None:
                     check(heading in text, f"{phase}/{name} has {heading}", warn_only=True)
     check((SHIKI_ROOT / "core-kernel" / "workflows" / "runner" / "next.md").exists(), "runner/next workflow exists")
     check((SHIKI_ROOT / "core-kernel" / "workflows" / "runner" / "batch.md").exists(), "runner/batch workflow exists")
+    check((SHIKI_ROOT / "core-kernel" / "runtime" / "execution_session.md").exists(), "runtime/execution_session.md exists")
 
 
 def test_tech_stack_contracts() -> None:
@@ -123,13 +124,14 @@ def test_context_budget() -> None:
         "tech-stacks/tech-contracts/java/ddd-spring/naming.md",
         "core-kernel/runtime/task_contracts/design/model.yaml",
         "core-kernel/runtime/context_loading.md",
+        "core-kernel/runtime/execution_session.md",
     ]
     total = 4500
     for relative in load_files:
         path = SHIKI_ROOT / relative
         if path.exists():
             total += path.stat().st_size
-    check(total < 15360, f"estimated model-design context is below 15 KB ({total} bytes)")
+    check(total < 24576, f"estimated model-design session context is below 24 KB ({total} bytes)")
 
 
 def print_report() -> None:

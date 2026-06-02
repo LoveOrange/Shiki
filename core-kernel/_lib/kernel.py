@@ -55,7 +55,14 @@ def _has_output_files(item):
 
 def _output_stale(item):
     """Return True when output_files explicitly marks the item stale."""
-    return item.get("output_files", "").strip().upper().startswith("STALE")
+    status = item.get("status", "").strip().upper()
+    output = item.get("output_files", "").strip().upper()
+    return status == "STALE" or output.startswith("STALE")
+
+
+def _status_value(item):
+    """Return normalized plan status when the status column exists."""
+    return item.get("status", "").strip().upper()
 
 
 def _contract_ref(item):
@@ -94,14 +101,26 @@ def _dependencies_satisfied(item, completed):
 
 
 def _blocked_output(item):
+    status = _status_value(item)
     output = item.get("output_files", "").strip().upper()
-    return output.startswith("BLOCKED") or output.startswith("MANUAL_DECISION")
+    return (
+        status in {"BLOCKED", "MANUAL_DECISION", "VERIFICATION_FAILED"}
+        or output.startswith("BLOCKED")
+        or output.startswith("MANUAL_DECISION")
+        or output.startswith("VERIFICATION_FAILED")
+    )
+
+
+def _status_done(item):
+    return _status_value(item) == "DONE"
 
 
 def item_done(feature_dir, item):
     """Best-effort completion check for plan items."""
     if _output_stale(item):
         return False
+    if _status_done(item):
+        return True
 
     target = item.get("target", "")
     target_path = _target_path(feature_dir, target)

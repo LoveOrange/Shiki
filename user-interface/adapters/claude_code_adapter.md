@@ -39,24 +39,29 @@ The command loads the adapter contract, this adapter document,
 `core-kernel/runtime/context_loading.md`,
 `shiki_context/workspace/active_task.md`, and the current scope `_plan.md`.
 It reports the active scope, next runnable item, gate state, blockers, missing
-files, and confirms that no edits were made.
+files, adapter capability detection, candidate execution window, likely topology,
+and confirms that no edits were made.
 
 ### `/shiki-next`
 
 The root session loads the adapter contract, this adapter document,
 `core-kernel/runtime/context_loading.md`,
+`core-kernel/runtime/execution_session.md`,
 `core-kernel/workflows/runner/next.md`, the active task, the current plan, and
-the selected task contract before any workflow text. The default execution mode
-is `single_item`.
+selected task contracts before any workflow text. Claude Code does not ask the
+user to choose single-agent or agent-team mode. The root session auto-selects
+topology from adapter metadata, plan state, direct context size, and stop
+conditions.
 
-When the root session considers `bounded_batch`, `phase_wave`, or
-`subagent_delegation`, it must also load
-`core-kernel/workflows/runner/batch.md`, state the selected internal execution
-mode, and record the batch stop-condition check result before edits. The root
-session may call `shiki-phase-wave` only after it has prepared the complete root
-assignment described below. After the worker returns, the root session runs the
-verification command, updates `output_files` only for verified items, and stops
-on `BLOCKED`, `MANUAL_DECISION`, or `VERIFICATION_FAILED`.
+When the root session considers `agent_team_session`, `bounded_batch`,
+`phase_wave`, or `subagent_delegation`, it must also load
+`core-kernel/workflows/runner/batch.md`, state the selected topology and
+internal execution mode, and record the batch stop-condition check result before
+edits. The root session may call `shiki-phase-wave` only after it has prepared
+the complete root assignment described below. After the worker returns, the root
+session runs verification and review, updates plan state only for verified and
+reviewed items, and stops on `BLOCKED`, `MANUAL_DECISION`,
+`VERIFICATION_FAILED`, or failed review.
 
 ### `/shiki-modify <target>`
 
@@ -75,8 +80,10 @@ The root Claude Code session owns:
 - Selecting ready plan items.
 - Checking dependencies and stop conditions.
 - Loading each selected task contract.
-- Deciding whether `/shiki-next` stays `single_item` or delegates a bounded wave.
-- Updating `_plan.md` `output_files`.
+- Automatically deciding whether `/shiki-next` uses `single_agent_session` or
+  `agent_team_session`.
+- Updating `_plan.md` `status`, `output_files`, `evidence`, and
+  `review_result`.
 - Running and reporting final verification.
 - Holding Merge phase control.
 
@@ -88,25 +95,28 @@ Merge phase remains root-controlled by default.
 
 Before using the subagent, the root session must produce a root assignment with:
 
+- Selected topology, limited to `agent_team_session`.
 - Selected internal execution mode, limited to `phase_wave` or
   `subagent_delegation`.
 - Item id, stage, and target output files for each selected item.
 - Task contract path and `workflow_ref` for each item.
 - Dependency check result and direct context files for each item.
 - Batch stop-condition check result from `core-kernel/workflows/runner/batch.md`.
-- Verification command or check that the root session will run after the worker returns.
+- Verification command and review gate that the root session will run after the worker returns.
 
 If any required assignment field is missing, the subagent must return `BLOCKED`
 without editing files.
 
 ## Delegation Rules
 
-Claude Code may delegate a Design or Code phase wave only when all of these are
-true:
+Claude Code may choose `agent_team_session` and delegate a Design or Code phase
+wave only when all of these are true:
 
 - The root session has selected the candidate items from the current plan.
+- The adapter manifest supports subagents or isolated worker context.
 - The root session has loaded `core-kernel/workflows/runner/batch.md` and
   recorded a clean batch stop-condition check result.
+- The selected topology is `agent_team_session`.
 - The selected internal execution mode is `phase_wave` or
   `subagent_delegation`.
 - Every item is in Design or Code.
@@ -115,21 +125,21 @@ true:
 - The root session can provide each item target, workflow reference, and direct context.
 - The wave does not cross Merge.
 - No item is `BLOCKED`, `MANUAL_DECISION`, stale without a target, missing input, or ambiguous ownership.
-- The wave can stop immediately after the first failed verification.
+- The wave can stop immediately after the first failed review or verification.
 
-When any condition is false, `/shiki-next` must run as `single_item` or return
-the appropriate `BLOCKED` or `MANUAL_DECISION` report.
+When any condition is false, `/shiki-next` must run as `single_agent_session` or
+return the appropriate `BLOCKED` or `MANUAL_DECISION` report.
 
-After the worker returns, the root session verifies the changed files, updates
-`output_files` only for verified items, and reports any `VERIFICATION_FAILED`
-state without continuing to later items.
+After the worker returns, the root session verifies and reviews the changed
+files, updates plan state only for verified and reviewed items, and reports any
+`VERIFICATION_FAILED` or failed review state without continuing to later items.
 
 ## When Subagents Help
 
-Use `shiki-phase-wave` when context limits matter: a Design or Code phase has
-several independent ready items and the root context is already carrying enough
-plan, dependency, and verification state that detailed item execution would risk
-context loss.
+Use `shiki-phase-wave` when the adaptive coordinator selects
+`agent_team_session`: a Design or Code phase has several ready items and the
+root context is already carrying enough plan, dependency, and verification state
+that detailed item execution would risk context loss.
 
 Good uses:
 
@@ -146,7 +156,8 @@ Do not use `shiki-phase-wave` when:
 - The target crosses unrelated modules or features.
 - A user decision is needed.
 - The root session cannot verify each item after the worker returns.
-- The worker would need to update `_plan.md`, `output_files`, or gate state itself.
+- The worker would need to update `_plan.md`, `status`, `output_files`,
+  `evidence`, `review_result`, or gate state itself.
 
-In unsafe cases, keep `/shiki-next` in `single_item` mode and preserve the normal
-Core Kernel stop behavior.
+In unsafe cases, keep `/shiki-next` in `single_agent_session` and preserve the
+normal Core Kernel stop behavior.

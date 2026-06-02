@@ -264,6 +264,9 @@ def write_plan(config: ScanConfig, entries: list[EntryPoint], force: bool = Fals
                 f"`{entry.module}`",
                 "-",
                 f"`{ENTRANCE_CONTRACT}`",
+                "READY",
+                "",
+                "",
                 "",
             ]
         )
@@ -276,12 +279,15 @@ def write_plan(config: ScanConfig, entries: list[EntryPoint], force: bool = Fals
                 "-",
                 ",".join(entrance_ids),
                 f"`{SYNC_CONTRACT}`",
+                "READY",
+                "",
+                "",
                 "",
             ]
         )
 
     table = markdown_table(
-        ["id", "phase", "target", "module", "depends_on", "contract", "output_files"],
+        ["id", "phase", "target", "module", "depends_on", "contract", "status", "output_files", "evidence", "review_result"],
         rows,
     )
     config.plan_path.parent.mkdir(parents=True, exist_ok=True)
@@ -476,6 +482,11 @@ def normalize_depends(depends_on: str) -> list[str]:
 
 
 def row_done(row: dict) -> bool:
+    status = clean_cell(row.get("status", "")).upper()
+    if status == "DONE":
+        return True
+    if status in {"STALE", "BLOCKED", "MANUAL_DECISION", "VERIFICATION_FAILED"}:
+        return False
     output = clean_cell(row.get("output_files", ""))
     return output not in EMPTY_VALUES and not output.upper().startswith("STALE")
 
@@ -532,9 +543,22 @@ def update_plan_output(plan_path: Path, item_id: str, output_files: list[str]) -
             output_index = headers.index("output_files")
         except ValueError:
             output_index = len(cells) - 1
+        status_index = headers.index("status") if "status" in headers else None
+        evidence_index = headers.index("evidence") if "evidence" in headers else None
+        review_index = headers.index("review_result") if "review_result" in headers else None
         while len(cells) <= output_index:
             cells.append("")
+        for optional_index in [status_index, evidence_index, review_index]:
+            if optional_index is not None:
+                while len(cells) <= optional_index:
+                    cells.append("")
+        if status_index is not None:
+            cells[status_index] = "DONE"
         cells[output_index] = output_cell(output_files)
+        if evidence_index is not None:
+            cells[evidence_index] = "direct source/spec evidence"
+        if review_index is not None:
+            cells[review_index] = "PASS"
         lines[index] = "| " + " | ".join(cells) + " |"
         plan_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
         return

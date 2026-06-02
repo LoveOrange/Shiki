@@ -24,5 +24,5 @@ retry_policy:
   max_attempts: 1
 done_condition:
 - workspace/sync_plan.md contains bounded rows routed to sync/apply_leaf.yaml or MANUAL_DECISION items
-- every executable row names target spec, source files, contract, and empty output_files
+- every executable row names target spec, source files, contract, status, empty output_files, evidence, and review_result
 workflow_ref: core-kernel/workflows/sync/plan.md

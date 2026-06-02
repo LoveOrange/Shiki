@@ -65,10 +65,11 @@ And plan output_files are updated.
 ## HIT-008A Batch Runner Preserves Task Atoms
 
 Given multiple ready feature plan items and a capable coding agent
-When batch or auto runs
+When `/shiki-next`, batch, or auto claims an execution window
 Then each selected item still loads its own task contract and workflow
-And output_files are updated after each completed item
-And the batch stops at Merge, MANUAL_DECISION, BLOCKED, missing input, ambiguous ownership, baseline writes, or failed verification.
+And review and verification pass before any item is marked complete
+And status, output_files, evidence, and review_result are updated after each completed item when those columns exist
+And the window stops at Merge, MANUAL_DECISION, BLOCKED, missing input, ambiguous ownership, baseline writes, failed review, or failed verification.
 
 ## HIT-009 Merge Writes Baseline
 
@@ -117,13 +118,13 @@ Given a consumer project contains `shiki/`
 When `python shiki/tools-skills/scripts/install_agent_adapter.py --tool all` runs
 Then Codex, Claude Code, Gemini CLI, and OpenCode project-local command files are created
 And repeated installer runs skip matching Shiki-managed files without duplicates
-And `/shiki-next` remains the user-facing command while bounded batch, phase-wave, and subagent execution stay internal strategies.
+And `/shiki-next` remains the user-facing command while adaptive topology selection, bounded batch, phase-wave, and subagent execution stay internal strategies.
 
 ## HIT-015 Claude Code Phase-Wave Adapter
 
 Given the Claude Code adapter is installed into a consumer project
 When `/shiki-next` considers phase-wave or subagent delegation
-Then `.claude/commands/shiki-next.md` keeps the root session responsible for plan state, dependency checks, `output_files`, and verification
+Then `.claude/commands/shiki-next.md` keeps the root session responsible for plan state, dependency checks, `status`, `output_files`, evidence, review_result, and verification
 And `.claude/commands/shiki-modify.md` exposes `argument-hint: <target>`
 And `.claude/agents/shiki-phase-wave.md` requires a root assignment before edits
 And the worker refuses Merge, plan-state updates, missing assignment fields, ambiguous ownership, and failed verification.
@@ -134,6 +135,24 @@ Given Codex, Claude Code, Gemini CLI, and OpenCode adapters are installed into a
 When a user invokes `/shiki-status`, `/shiki-next`, or `/shiki-modify <target>` from the native command surface
 Then each command loads the adapter contract before tool-specific guidance
 And `/shiki-status` loads Core Kernel context and remains read-only
-And `/shiki-next` loads runner/next, selects an internal execution mode, loads task contracts, and marks `output_files` only after verification
+And `/shiki-next` loads execution_session and runner/next, auto-selects topology, loads task contracts, and marks plan state only after review and verification
 And `/shiki-modify <target>` treats trailing command text as the required bounded target and returns `BLOCKED` when the target is missing or ambiguous
 And active tool sessions document the required reload or restart step after command files change.
+
+## HIT-017 Adaptive Coordinator Session
+
+Given a current plan with multiple ready Design or Code items
+When `/shiki-next` runs from an installed adapter
+Then the coordinator reads adapter manifest capabilities and does not ask the user to choose single-agent or agent-team mode
+And it claims a bounded execution window from the plan graph, direct context budget, and stop conditions
+And it re-evaluates whether to continue after every item review
+And it stops at phase gate, context budget boundary, BLOCKED, MANUAL_DECISION, failed review, or failed verification.
+
+## HIT-018 Plan State And Review Gate
+
+Given a new or migrated feature plan
+When any task item is completed by `/shiki-next`, sync, or doctor
+Then the plan can record status, output_files, evidence, and review_result
+And status DONE is used only after execution, task-contract checks, verification, and review pass
+And old plans without the new columns remain routable through output_files compatibility
+And doctor can diagnose adapter contract, context interface, plan schema, and spec/index health.

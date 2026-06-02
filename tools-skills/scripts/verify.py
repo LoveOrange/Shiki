@@ -197,6 +197,7 @@ def verify_core_consistency() -> None:
     flow_tests = (ROOT / "tests" / "SHIKI_FLOW_TESTS.md").read_text(encoding="utf-8")
     phase_contract = (ROOT / "core-kernel/runtime/phase_contract.md").read_text(encoding="utf-8")
     context_loading = (ROOT / "core-kernel/runtime/context_loading.md").read_text(encoding="utf-8")
+    execution_session = (ROOT / "core-kernel/runtime/execution_session.md").read_text(encoding="utf-8")
     adapter_contract = (ROOT / "user-interface" / "adapters" / "tool_adapter_contract_v1.md").read_text(encoding="utf-8")
     codex_adapter = (ROOT / "user-interface" / "adapters" / "codex_adapter.md").read_text(encoding="utf-8")
     claude_adapter = (ROOT / "user-interface" / "adapters" / "claude_code_adapter.md").read_text(encoding="utf-8")
@@ -269,13 +270,24 @@ def verify_core_consistency() -> None:
 
     # Check runtime guidance
     for needle in ["task contract", "core-kernel/runtime/task_contracts/"]:
-        if needle not in context_loading + runner_next + runner_apply + runner_batch:
+        if needle not in context_loading + execution_session + runner_next + runner_apply + runner_batch:
             raise AssertionError(f"Missing task-contract runtime guidance: {needle}")
     for needle in ["feature-root relative", "not baseline"]:
         if needle not in context_loading + runner_next + feature_plan_template:
             raise AssertionError(f"Missing feature-relative target guidance: {needle}")
     if "top-level prompt" not in context_loading:
         raise AssertionError("Missing user-facing top-level prompt guidance")
+    for needle in [
+        "adaptive execution session",
+        "single_agent_session",
+        "agent_team_session",
+        "Do not ask the user to choose single-agent or agent-team mode",
+        "review gate",
+        "phase gate",
+        "status | output_files | evidence | review_result",
+    ]:
+        if needle not in execution_session + runner_next + runner_batch + feature_plan_template:
+            raise AssertionError(f"Missing adaptive execution-session guidance: {needle}")
 
     docs_text = root_readme + cheatsheet + flow_tests
     for needle in [
@@ -294,9 +306,13 @@ def verify_core_consistency() -> None:
         "bounded batch",
         "phase-wave",
         "internal strategy",
+        "adaptive execution session",
+        "single-agent or agent-team",
         "HIT-014 Adapter Install And Commands",
         "HIT-015 Claude Code Phase-Wave Adapter",
         "HIT-016 Tool-Native Command Invocation Happy Paths",
+        "HIT-017 Adaptive Coordinator Session",
+        "HIT-018 Plan State And Review Gate",
         "Command invocation after install",
         "/commands reload",
     ]:
@@ -310,7 +326,11 @@ def verify_core_consistency() -> None:
         "supports_slash_commands",
         "supports_skills",
         "supports_subagents",
+        "supports_isolated_worker_context",
         "supports_project_local_install",
+        "execution_topologies",
+        "single_agent_session",
+        "agent_team_session",
         "single_item",
         "bounded_batch",
         "phase_wave",
@@ -340,6 +360,7 @@ def verify_core_consistency() -> None:
             raise AssertionError(f"adapter contract missing command: {command}")
     for core_ref in [
         "core-kernel/runtime/context_loading.md",
+        "core-kernel/runtime/execution_session.md",
         "core-kernel/workflows/runner/next.md",
         "core-kernel/workflows/runner/batch.md",
         "core-kernel/runtime/task_contracts/sync/plan.yaml",
@@ -356,8 +377,9 @@ def verify_core_consistency() -> None:
         "Native Activation",
         "Command Happy Paths",
         "$ARGUMENTS",
-        "`single_item` mode by default",
-        "switch `/shiki-next` to `bounded_batch`",
+        "`single_agent_session`",
+        "does not ask the user",
+        "verification and review pass",
         "Verification covers installed Codex adapter files",
     ]:
         if needle not in codex_adapter:
@@ -367,13 +389,15 @@ def verify_core_consistency() -> None:
         "/shiki-modify <target>",
         "{{args}}",
         "core-kernel/runtime/context_loading.md",
+        "core-kernel/runtime/execution_session.md",
         "`bounded_batch`",
         "project-local `.gemini/commands/*.toml`",
         "Command Happy Paths",
         "`prompt` field",
         "`/commands reload`",
         "Return `BLOCKED` when `{{args}}` is empty",
-        "Gemini CLI has no Shiki subagent",
+        "Shiki subagent surface",
+        "`single_agent_session`",
     ]:
         if needle not in gemini_adapter:
             raise AssertionError(f"Gemini adapter doc missing expected guidance: {needle}")
@@ -391,6 +415,8 @@ def verify_core_consistency() -> None:
         "hidden: true",
         "subtask",
         "Merge remains",
+        "adaptive coordinator session",
+        "review pass",
     ]:
         if needle not in opencode_adapter:
             raise AssertionError(f"OpenCode adapter doc missing expected guidance: {needle}")
@@ -401,13 +427,15 @@ def verify_core_consistency() -> None:
         "argument-hint: <target>",
         "Command Happy Paths",
         "selected internal execution mode",
+        "selected topology",
         "batch stop-condition check result",
         "root assignment",
-        "Design or Code phase wave",
+        "Design or Code phase",
         "Merge phase remains root-controlled",
         "The `shiki-phase-wave` subagent must not select its own plan items",
-        "context limits",
+        "root context",
         "unsafe",
+        "agent_team_session",
     ]:
         if needle not in claude_adapter:
             raise AssertionError(f"Claude adapter doc missing expected guidance: {needle}")
@@ -594,10 +622,14 @@ def verify_fixture_workflow() -> None:
             "disable-model-invocation: true",
             "argument-hint: <target>",
             "Required root assignment",
+            "selected topology",
             "selected internal execution mode",
             "batch stop-condition check result",
             "Load core-kernel/workflows/runner/batch.md before selecting",
+            "core-kernel/runtime/execution_session.md",
             "tools: Read, Grep, Glob, Bash, Edit, Write",
+            "execution_topologies",
+            "supports_isolated_worker_context",
             "AGENTS.md",
             "project-local Codex prompt",
             "Codex skill command dispatch",
@@ -635,11 +667,12 @@ def verify_fixture_workflow() -> None:
             ".codex/prompts/shiki-next.md": [
                 "shiki/user-interface/adapters/tool_adapter_contract_v1.md",
                 "shiki/user-interface/adapters/codex_adapter.md",
-                "core-kernel/workflows/runner/next.md",
-                "core-kernel/runtime/task_contracts/",
-                "State the selected internal execution mode before edits",
-                "update output_files only after verification passes",
-            ],
+            "core-kernel/workflows/runner/next.md",
+            "core-kernel/runtime/execution_session.md",
+            "core-kernel/runtime/task_contracts/",
+            "State the selected topology and selected internal execution mode before edits",
+            "verification and review pass",
+        ],
             ".codex/prompts/shiki-modify.md": [
                 "shiki/user-interface/adapters/tool_adapter_contract_v1.md",
                 "shiki/user-interface/adapters/codex_adapter.md",
@@ -658,10 +691,11 @@ def verify_fixture_workflow() -> None:
                 "disable-model-invocation: true",
                 "shiki/user-interface/adapters/tool_adapter_contract_v1.md",
                 "shiki/user-interface/adapters/claude_code_adapter.md",
-                "core-kernel/workflows/runner/next.md",
-                "state the selected execution mode before edits",
-                "root Claude Code session responsible for plan state",
-                "update output_files only for verified items",
+            "core-kernel/workflows/runner/next.md",
+            "core-kernel/runtime/execution_session.md",
+            "State the selected topology and selected execution mode before edits",
+            "root Claude Code session responsible for plan state",
+            "update status, output_files, evidence, and review_result only for passing items",
             ],
             ".claude/commands/shiki-modify.md": [
                 "disable-model-invocation: true",
@@ -683,6 +717,10 @@ def verify_fixture_workflow() -> None:
             raise AssertionError("Gemini manifest must identify gemini-cli")
         if gemini_manifest["execution_modes"] != ["single_item", "bounded_batch"]:
             raise AssertionError("Gemini manifest must expose only single_item and bounded_batch modes")
+        if gemini_manifest["execution_topologies"] != ["single_agent_session"]:
+            raise AssertionError("Gemini manifest must expose only single_agent_session topology")
+        if gemini_manifest["capabilities"]["supports_isolated_worker_context"]:
+            raise AssertionError("Gemini manifest must not support isolated worker context")
         if not gemini_manifest["capabilities"]["supports_project_local_install"]:
             raise AssertionError("Gemini manifest must support project-local install")
         if ".gemini/commands/shiki-modify.toml" not in gemini_manifest["command_files"]:
@@ -696,10 +734,12 @@ def verify_fixture_workflow() -> None:
             ],
             "shiki-next": [
                 "core-kernel/workflows/runner/next.md",
+                "core-kernel/runtime/execution_session.md",
                 "core-kernel/runtime/task_contracts/",
-                "state the selected internal execution mode before edits",
+                "State the selected topology and selected internal execution mode before edits",
                 "Load core-kernel/workflows/runner/batch.md before selecting bounded_batch",
                 "Gemini CLI has no Shiki subagent surface",
+                "verification and review pass",
             ],
             "shiki-modify": [
                 "{{args}}",
@@ -724,7 +764,9 @@ def verify_fixture_workflow() -> None:
             raise AssertionError("OpenCode manifest must identify opencode")
         if opencode_manifest["execution_modes"] != ["single_item", "bounded_batch", "phase_wave", "subagent_delegation"]:
             raise AssertionError("OpenCode manifest must expose all Phase 1 execution modes")
-        for capability in ["supports_slash_commands", "supports_skills", "supports_subagents", "supports_project_local_install"]:
+        if opencode_manifest["execution_topologies"] != ["single_agent_session", "agent_team_session"]:
+            raise AssertionError("OpenCode manifest must expose adaptive topologies")
+        for capability in ["supports_slash_commands", "supports_skills", "supports_subagents", "supports_isolated_worker_context", "supports_project_local_install"]:
             if not opencode_manifest["capabilities"][capability]:
                 raise AssertionError(f"OpenCode manifest must enable {capability}")
         for relative in [
@@ -747,10 +789,11 @@ def verify_fixture_workflow() -> None:
                 "agent: shiki-runner",
                 "subtask: false",
                 "core-kernel/workflows/runner/next.md",
-                "state the selected internal execution mode before edits",
+                "core-kernel/runtime/execution_session.md",
+                "State the selected topology and selected internal execution mode before edits",
                 "Load core-kernel/workflows/runner/batch.md before selecting bounded_batch, phase_wave, or subagent_delegation.",
                 "Before delegation, prepare a root assignment",
-                "After a subagent returns, verify each item in shiki-runner context",
+                "After a subagent returns, verify and review each item in shiki-runner context",
                 "Merge phase remains root-controlled by default.",
             ],
             "shiki-modify": [
@@ -785,7 +828,7 @@ def verify_fixture_workflow() -> None:
                 "shiki-reviewer: allow",
                 "shiki-phase-wave: allow",
                 "Applicable AGENTS.md files",
-                "Own plan state, dependency order, output_files updates, and final verification.",
+                "Own plan state, dependency order, status/output_files/evidence/review_result updates, review gates, and final verification.",
             ],
             "shiki-reviewer": [
                 "mode: subagent",
@@ -802,7 +845,7 @@ def verify_fixture_workflow() -> None:
                 "Required root assignment:",
                 "batch stop-condition check result from core-kernel/workflows/runner/batch.md",
                 "Do not select plan items yourself.",
-                "Do not edit _plan.md, output_files, active_task.md, sync_plan.md, doctor_plan.md, or Merge state.",
+                "Do not edit _plan.md, status, output_files, evidence, review_result, active_task.md, sync_plan.md, doctor_plan.md, or Merge state.",
                 "Return shape:",
             ],
         }
@@ -861,6 +904,9 @@ def verify_fixture_workflow() -> None:
         init_plan = (project / "shiki_context" / "workspace" / "_plan.md").read_text(encoding="utf-8")
         if "init.entrance" not in init_plan or "entrances/create_order.md" not in init_plan:
             raise AssertionError("scan.py must analyze entries, not only register them")
+        for needle in ["| status | output_files | evidence | review_result |", "| DONE |", "| PASS |"]:
+            if needle not in init_plan:
+                raise AssertionError(f"scan.py plan missing adaptive plan state: {needle}")
         project_index = (project / "shiki_context" / "project" / "index.md").read_text(encoding="utf-8")
         if "| `order` | `modules/order/` | `modules/order/index.md` | current |" not in project_index:
             raise AssertionError("scan.py must register discovered modules in project index.md")
@@ -900,8 +946,10 @@ def verify_fixture_workflow() -> None:
         )
 
         plan_text = (feature_dir / "_plan.md").read_text(encoding="utf-8")
-        if "| B1 | Design | `_plan.md` | - | `core-kernel/runtime/task_contracts/design/design_init.yaml` |" not in plan_text:
+        if "| B1 | Design | `_plan.md` | - | `core-kernel/runtime/task_contracts/design/design_init.yaml` | READY |" not in plan_text:
             raise AssertionError("new_feature.py must create a bootstrap plan with design_init")
+        if "| status | output_files | evidence | review_result |" not in plan_text:
+            raise AssertionError("new_feature.py must create bootstrap plan with adaptive state columns")
 
         # Kernel routing: bootstrap should drive design_init
         select_bootstrap = subprocess.check_output(
@@ -944,9 +992,9 @@ def verify_fixture_workflow() -> None:
         )
         plan_text = (feature_dir / "_plan.md").read_text(encoding="utf-8")
         for needle in [
-            "| D1 | Design | `modules/order/designs/model.md` | - | `core-kernel/runtime/task_contracts/design/model.yaml` |",
-            "| C1 | Code | - | D1,D6 | `core-kernel/runtime/task_contracts/code/entity.yaml` |",
-            "| M1 | Merge | baseline | C5 | `core-kernel/runtime/task_contracts/merge/feature_merge.yaml` |",
+            "| D1 | Design | `modules/order/designs/model.md` | - | `core-kernel/runtime/task_contracts/design/model.yaml` | READY |",
+            "| C1 | Code | - | D1,D6 | `core-kernel/runtime/task_contracts/code/entity.yaml` | READY |",
+            "| M1 | Merge | baseline | C5 | `core-kernel/runtime/task_contracts/merge/feature_merge.yaml` | READY |",
         ]:
             if needle not in plan_text:
                 raise AssertionError(f"expanded plan missing row: {needle}")

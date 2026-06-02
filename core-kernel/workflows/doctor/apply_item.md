@@ -6,7 +6,7 @@
 
 - `core-kernel/runtime/context_loading.md`
 - `shiki_context/workspace/doctor_plan.md`
-- first row whose `output_files` is empty and whose contract points to `doctor/apply_item.yaml`
+- first row whose `status` is `READY` or whose `output_files` is empty and whose contract points to `doctor/apply_item.yaml`
 - files named by that row target and source_files
 
 Do not load a whole business spec directory to infer migration ownership.
@@ -19,8 +19,13 @@ Do not load a whole business spec directory to infer migration ownership.
    - `workspace_ignore`: create or update only `shiki_context/workspace/.gitignore`.
    - `recover`: fill `_plan.md` `output_files` only with existing valid file paths.
    - `migrate_v2`: execute only file moves, renames, or index path replacements listed in `doctor_plan.md`.
+   - `adapter_contract`: regenerate or repair only Shiki-managed adapter files and manifests.
+   - `context_interface`: repair only deterministic context structure and routing fields.
+   - `plan_schema`: add or normalize `status`, `evidence`, and `review_result` columns without changing business facts.
+   - `spec_health`: repair deterministic index routes or metadata formatting only; ambiguous facts remain Manual Decision.
 4. Stop and mark `MANUAL_DECISION` or `BLOCKED` if target/source is missing without explanation, ownership is ambiguous, business spec body rewrite is required, or the operation requires deletion, Git index cleanup, global config changes, or sensitive paths.
-5. On success, write changed file paths to the current row `output_files`.
+5. On success, write changed file paths to the current row `output_files`, set
+   `status=DONE` when the column exists, and record evidence/review_result.
 6. Stop without executing the next row.
 
 ## Verification

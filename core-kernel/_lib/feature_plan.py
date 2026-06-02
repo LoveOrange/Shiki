@@ -77,10 +77,13 @@ def render_bootstrap_plan(feature_id, created_on):
         "`_plan.md`",
         "-",
         f"`{BOOTSTRAP_CONTRACT}`",
+        "READY",
+        "",
+        "",
         "",
     ]]
     table = _markdown_table(
-        ["id", "phase", "target", "depends_on", "contract", "output_files"],
+        ["id", "phase", "target", "depends_on", "contract", "status", "output_files", "evidence", "review_result"],
         rows,
     )
     return "\n".join(
@@ -196,11 +199,11 @@ def render_full_plan(feature_id, base_module, created_on, has_entrance, needs_ac
     entrance_target = f"`{module_root}/entrances/main.md`"
     flow_target = f"`{module_root}/flows/main.md`"
     rows = [
-        ["D1", "Design", model_target, "-", f"`{MODEL_CONTRACT}`", ""],
-        ["D2", "Design", persistence_target, "D1", f"`{PERSISTENCE_CONTRACT}`", ""],
+        ["D1", "Design", model_target, "-", f"`{MODEL_CONTRACT}`", "READY", "", "", ""],
+        ["D2", "Design", persistence_target, "D1", f"`{PERSISTENCE_CONTRACT}`", "READY", "", "", ""],
     ]
     if needs_acl:
-        rows.append(["D3", "Design", acl_target, "D1", f"`{ACL_CONTRACT}`", ""])
+        rows.append(["D3", "Design", acl_target, "D1", f"`{ACL_CONTRACT}`", "READY", "", "", ""])
         component_depends = "D1,D2,D3"
         flow_depends = "D1,D2,D3,D4"
         feature_logic_depends = "C2,D3,D6"
@@ -211,26 +214,26 @@ def render_full_plan(feature_id, base_module, created_on, has_entrance, needs_ac
         feature_logic_depends = "C2,D6"
         infrastructure_depends = "C1,C2,D2"
 
-    rows.append(["D4", "Design", component_target, component_depends, f"`{COMPONENT_CONTRACT}`", ""])
+    rows.append(["D4", "Design", component_target, component_depends, f"`{COMPONENT_CONTRACT}`", "READY", "", "", ""])
     if has_entrance:
-        rows.append(["D5", "Design", entrance_target, "D1", f"`{ENTRANCE_SPEC_CONTRACT}`", ""])
+        rows.append(["D5", "Design", entrance_target, "D1", f"`{ENTRANCE_SPEC_CONTRACT}`", "READY", "", "", ""])
         adapter_depends = "C2,D4,D5"
     else:
         adapter_depends = "C2,D4"
-    rows.append(["D6", "Design", flow_target, flow_depends, f"`{FLOW_CONTRACT}`", ""])
+    rows.append(["D6", "Design", flow_target, flow_depends, f"`{FLOW_CONTRACT}`", "READY", "", "", ""])
     rows.extend(
         [
-            ["C1", "Code", "-", "D1,D6", f"`{CODE_ENTITY_CONTRACT}`", ""],
-            ["C2", "Code", "-", "D1,D4", f"`{CODE_INTERFACE_CONTRACT}`", ""],
-            ["C3", "Code", "-", feature_logic_depends, f"`{CODE_FEATURE_CONTRACT}`", ""],
-            ["C4", "Code", "-", infrastructure_depends, f"`{CODE_INFRA_CONTRACT}`", ""],
-            ["C5", "Code", "-", adapter_depends, f"`{CODE_ADAPTER_CONTRACT}`", ""],
-            ["M1", "Merge", "baseline", "C5", f"`{MERGE_CONTRACT}`", ""],
+            ["C1", "Code", "-", "D1,D6", f"`{CODE_ENTITY_CONTRACT}`", "READY", "", "", ""],
+            ["C2", "Code", "-", "D1,D4", f"`{CODE_INTERFACE_CONTRACT}`", "READY", "", "", ""],
+            ["C3", "Code", "-", feature_logic_depends, f"`{CODE_FEATURE_CONTRACT}`", "READY", "", "", ""],
+            ["C4", "Code", "-", infrastructure_depends, f"`{CODE_INFRA_CONTRACT}`", "READY", "", "", ""],
+            ["C5", "Code", "-", adapter_depends, f"`{CODE_ADAPTER_CONTRACT}`", "READY", "", "", ""],
+            ["M1", "Merge", "baseline", "C5", f"`{MERGE_CONTRACT}`", "READY", "", "", ""],
         ]
     )
 
     table = _markdown_table(
-        ["id", "phase", "target", "depends_on", "contract", "output_files"],
+        ["id", "phase", "target", "depends_on", "contract", "status", "output_files", "evidence", "review_result"],
         rows,
     )
     return "\n".join(

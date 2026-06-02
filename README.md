@@ -20,17 +20,23 @@ AI coding fails most often when the model is asked to infer too much at once:
 - a reply is treated as done before the artifact is valid
 
 Shiki narrows the model's job. The harness owns task routing, context loading,
-state transitions, and validation. The model performs bounded plan items against
-contracts, one at a time by default or as an explicit batch for stronger coding
-agents.
+state transitions, topology selection, review gates, and validation. The model
+performs bounded plan items against contracts inside an adaptive execution
+session. Strong tools can use workers internally; users still invoke the same
+commands.
 
 ## Core Ideas
 
 - Workflow-driven execution: each task is routed from `_plan.md` to a task contract and a workflow.
+- Adaptive execution sessions: `/shiki-next` automatically chooses a
+  single-agent or agent-team topology from adapter metadata, task graph, context
+  budget, and stop conditions.
 - File-backed state: briefs, specs, plans, tech rules, and outputs live in versioned files.
 - Current valid specs: the active leaf specs in scope are the source of truth.
 - L2 AS-IS specs: code follows current leaf specs directly; `code_contract.md` is only an optional implementation slice.
 - Tech contracts: language and architecture rules are replaceable stacks such as `java/ddd-spring`.
+- Review gates: task output is not complete until execution, verification,
+  review, evidence, and plan state all pass.
 - Minimal context: normal tasks load only plan state, direct dependencies, workflow, templates, and selected tech rules.
 
 ## Quick Start
@@ -135,17 +141,20 @@ After install, the primary command surface is:
 /shiki-next
 /shiki-modify <target>
 /shiki-review
-/shiki-sync
 /shiki-doctor
 ```
 
 Invoke those commands inside the installed coding tool. If the tool was already
 running, reload its command surface or restart the session after installation.
 
-`/shiki-next` is the user-facing runner. Strong adapters may use bounded batch
-or phase-wave execution internally when Core Kernel stop rules allow it, but
-plan state, task contracts, `output_files`, and verification remain controlled
-by Shiki Core.
+`/shiki-next` is the user-facing coordinator. It starts an adaptive execution
+session and does not ask the user to choose single-agent or agent-team mode.
+Strong adapters may use bounded batch, phase-wave, or worker delegation
+internally when Core Kernel stop rules allow it, but plan state, task contracts,
+review gates, `output_files`, evidence, and verification remain controlled by
+Shiki Core. `/shiki-sync` remains an advanced compatibility command for explicit
+Code -> Spec synchronization; daily sync behavior should be routed through
+`modify`, `review`, or `doctor` when possible.
 
 `docs/CHEATSHEET.md` remains the fallback prompt panel for agents without an
 installed adapter.

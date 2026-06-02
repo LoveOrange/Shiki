@@ -81,17 +81,20 @@ OpenCode runs the command with `shiki-runner`. The runner loads the adapter
 contract, this adapter document, `core-kernel/runtime/context_loading.md`,
 `shiki_context/workspace/active_task.md`, and the current scope `_plan.md`.
 It reports active scope, next runnable item, gate state, blockers, missing
-files, and confirms that no edits were made.
+files, adapter capability detection, candidate execution window, likely topology,
+and confirms that no edits were made.
 
 ### `/shiki-next`
 
 OpenCode runs the command with `shiki-runner`. The runner loads the adapter
 contract, this adapter document, `core-kernel/runtime/context_loading.md`,
+`core-kernel/runtime/execution_session.md`,
 `core-kernel/workflows/runner/next.md`, the active task, the current plan, and
-the selected task contract before loading the contract `workflow_ref`.
-It states the selected internal execution mode before edits, defaults to
-`single_item`, updates `output_files` only after verification passes, and stops
-on the adapter contract stop conditions.
+selected task contracts before loading each contract `workflow_ref`. The runner
+does not ask the user to choose single-agent or agent-team mode. It
+auto-selects topology from adapter metadata, plan state, direct context size,
+and stop conditions, updates plan state only after verification and review pass,
+and stops on the adapter contract stop conditions.
 
 ### `/shiki-modify <target>`
 
@@ -115,39 +118,43 @@ meaningful verification.
 
 The `shiki-runner` role owns plan state and verification. It may call the hidden
 `shiki-phase-wave` subagent only after it has selected a bounded Design or Code
-wave, checked dependencies, loaded task contracts, and confirmed all batch stop
-conditions are clear.
+wave through `agent_team_session`, checked dependencies, loaded task contracts,
+and confirmed all batch stop conditions are clear.
 
-Subagents must not update `_plan.md`, `output_files`, `active_task.md`,
-`sync_plan.md`, `doctor_plan.md`, or Merge state. They return changed files,
-verification evidence, and any `BLOCKED`, `MANUAL_DECISION`, or
-`VERIFICATION_FAILED` result to `shiki-runner`.
+Subagents must not update `_plan.md`, `status`, `output_files`, `evidence`,
+`review_result`, `active_task.md`, `sync_plan.md`, `doctor_plan.md`, or Merge
+state. They return changed files, verification evidence, and any `BLOCKED`,
+`MANUAL_DECISION`, `VERIFICATION_FAILED`, or failed review result to
+`shiki-runner`.
 
 Before using `shiki-phase-wave`, `shiki-runner` must provide a root assignment
 with:
 
+- Selected topology, limited to `agent_team_session`.
 - Selected internal execution mode, limited to `phase_wave` or
   `subagent_delegation`.
 - Item id, stage, and target output files for each selected item.
 - Task contract path and `workflow_ref` for each item.
 - Dependency check result and direct context files for each item.
 - Batch stop-condition check result from `core-kernel/workflows/runner/batch.md`.
-- Verification command or check that `shiki-runner` will run after the worker returns.
+- Verification command and review gate that `shiki-runner` will run after the worker returns.
 
 If any required assignment field is missing, `shiki-phase-wave` must return
 `BLOCKED` without editing files.
 
-## `/shiki-next` Mapping
+## `/shiki-next` Adaptive Session
 
-OpenCode runs `/shiki-next` as `single_item` by default. It may use
+OpenCode runs `/shiki-next` through an adaptive coordinator session. It may use
+`single_agent_session` or `agent_team_session` automatically. It may use
 `bounded_batch`, `phase_wave`, or `subagent_delegation` only when
-`core-kernel/workflows/runner/batch.md` allows every claimed item and all stop
-conditions are clear. Each item still loads its own task contract and updates
-its own `output_files` only after root verification passes. Merge remains
-root-controlled by default.
+`core-kernel/workflows/runner/batch.md` allows every claimed item, the adapter
+manifest supports the selected topology, and all stop conditions are clear. Each
+item still loads its own task contract and updates its own `status`,
+`output_files`, `evidence`, and `review_result` only after root verification and
+review pass. Merge remains root-controlled by default.
 
 When those conditions are not satisfied, `/shiki-next` must stay in
-`single_item` mode or return the adapter contract's `BLOCKED`,
+`single_agent_session` or return the adapter contract's `BLOCKED`,
 `MANUAL_DECISION`, or `VERIFICATION_FAILED` report.
 
 ## Install Behavior
@@ -175,4 +182,5 @@ verify:
   hide `shiki-phase-wave`, and prevent subagents from changing plan state or
   Merge state.
 - The OpenCode manifest records `opencode`, project-local install support,
-  slash commands, skills, subagents, and the Phase 1 execution modes.
+  slash commands, skills, subagents, isolated worker context, and adaptive
+  execution topologies.

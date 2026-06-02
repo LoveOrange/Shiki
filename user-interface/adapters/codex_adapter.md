@@ -67,17 +67,20 @@ Codex loads the adapter contract, this adapter document,
 `core-kernel/runtime/context_loading.md`,
 `shiki_context/workspace/active_task.md`, and the current scope `_plan.md`.
 It reports active scope, next runnable item, gate state, blockers, missing
-files, and confirms that no edits were made.
+files, adapter capability detection, candidate execution window, likely topology,
+and confirms that no edits were made.
 
 ### `/shiki-next`
 
 Codex loads the adapter contract, this adapter document,
 `core-kernel/runtime/context_loading.md`,
+`core-kernel/runtime/execution_session.md`,
 `core-kernel/workflows/runner/next.md`, the active task, the current plan, and
-the selected task contract before workflow text. It states the selected internal
-execution mode before edits, defaults to `single_item`, updates `output_files`
-only after verification passes, and stops on the adapter contract stop
-conditions.
+selected task contracts before workflow text. Codex does not ask the user to
+choose single-agent or agent-team mode. It auto-selects
+`single_agent_session`, may claim a bounded execution window when Core Kernel
+rules allow it, runs review after each item, updates plan state only after
+verification and review pass, and stops on the adapter contract stop conditions.
 
 ### `/shiki-modify <target>`
 
@@ -89,28 +92,39 @@ target is missing or ambiguous, edits only the requested bounded target, marks
 downstream completed items `STALE` only when affected, and runs the smallest
 meaningful verification.
 
-## `/shiki-next` Selection
+## `/shiki-next` Adaptive Session
 
-Codex runs `/shiki-next` in `single_item` mode by default:
+Codex runs `/shiki-next` as a `single_agent_session` because Codex has no Shiki
+subagent surface in this adapter. The session still adapts how many items it
+claims:
 
 1. Read `shiki_context/workspace/active_task.md`.
 2. Read the current scope `_plan.md`.
-3. Select the first ready item.
-4. Load that item's task contract.
-5. Load the contract `workflow_ref`.
-6. Execute one item and update `output_files` only after verification passes.
+3. Load `core-kernel/runtime/execution_session.md`.
+4. Select the first ready item and build a bounded execution window in plan
+   order.
+5. Estimate context cost from direct specs, source files, and verification
+   output.
+6. Load each item's task contract before loading its `workflow_ref`.
+7. Execute one item at a time, run review and verification, then update
+   `status`, `output_files`, `evidence`, and `review_result` when those columns
+   exist.
+8. Re-evaluate whether to continue after every reviewed item.
 
-Codex may switch `/shiki-next` to `bounded_batch` only when all Core Kernel batch
-rules in `core-kernel/workflows/runner/batch.md` hold. The batch remains an
-internal strategy behind `/shiki-next`; users do not need a separate primary
-command. Codex must state the selected mode before edits, list claimed item ids,
-load each item contract separately, and stop before Merge, `BLOCKED`,
-`MANUAL_DECISION`, missing input, ambiguous ownership, baseline writes, or
-failed verification.
+Codex may use `bounded_batch` inside the single-agent session only when all Core
+Kernel execution-window rules in `core-kernel/workflows/runner/batch.md` hold.
+The batch remains an internal strategy behind `/shiki-next`; users do not need a
+separate primary command or a mode flag. Codex must state the selected topology
+and internal mode before edits, list claimed item ids, load each item contract
+separately, and stop before Merge, `BLOCKED`, `MANUAL_DECISION`, missing input,
+ambiguous ownership, baseline writes, failed review, or failed verification.
 
 When those conditions are not satisfied, Codex must stay in `single_item` mode
 or return the adapter contract's `BLOCKED`, `MANUAL_DECISION`, or
 `VERIFICATION_FAILED` report.
+
+Codex must not select `agent_team_session`, `phase_wave`, or
+`subagent_delegation`.
 
 ## Verification
 
@@ -124,3 +138,5 @@ verify:
   applicable `AGENTS.md` rules, and Core Kernel runtime docs.
 - `/shiki-modify <target>` generated content forwards `$ARGUMENTS` and blocks
   missing or ambiguous targets.
+- `/shiki-next` generated content references `execution_session.md`, reports the
+  automatically selected topology, and keeps Codex in `single_agent_session`.
