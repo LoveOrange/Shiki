@@ -40,6 +40,45 @@ COMMANDS = [
         ],
     },
     {
+        "name": "shiki-scan",
+        "canonical": "/shiki-scan",
+        "description": "Run Init baseline discovery and write Shiki baseline specs.",
+        "loads": [
+            "shiki.config.yaml",
+            "tools-skills/scripts/scan.py",
+            "core-kernel/runtime/context_loading.md",
+            "core-kernel/workflows/runner/next.md",
+            f"{CONTEXT_ROOT}/workspace/active_task.md",
+            f"{CONTEXT_ROOT}/workspace/_plan.md",
+        ],
+        "body": [
+            "Run the Init baseline discovery flow.",
+            "Read shiki.config.yaml for src_root, base_package, and tech_stacks.",
+            "Use the deterministic scan script when available.",
+            "Discover entry points, analyze pending init.entrance items, and run init.sync as allowed by the Init plan.",
+            "Stop on missing config, missing source root, ambiguous ownership, BLOCKED, MANUAL_DECISION, or verification failure.",
+        ],
+    },
+    {
+        "name": "shiki-new-feature",
+        "canonical": "/shiki-new-feature <taskid>",
+        "description": "Create a new Shiki feature workspace.",
+        "loads": [
+            "tools-skills/scripts/new_feature.py",
+            "core-kernel/runtime/phase_contract.md",
+            "core-kernel/templates/feature/",
+        ],
+        "body": [
+            "Treat the user argument as the required task id.",
+            "Run the deterministic new_feature.py script for that task id.",
+            "Confirm design_brief.md, _plan.md, index.md, and tests/test_cases.md were created.",
+            "Stop after initialization; do not continue into design_init.",
+            "Return BLOCKED when the task id is missing, already exists, or shiki_context/ is missing.",
+        ],
+        "requires_args": True,
+        "argument_hint": "<taskid>",
+    },
+    {
         "name": "shiki-status",
         "canonical": "/shiki-status",
         "description": "Report current Shiki plan state without changing files.",
@@ -77,6 +116,27 @@ COMMANDS = [
         ],
     },
     {
+        "name": "shiki-apply",
+        "canonical": "/shiki-apply",
+        "description": "Compatibility entry with the same adaptive semantics as /shiki-next.",
+        "loads": [
+            "core-kernel/runtime/context_loading.md",
+            "core-kernel/runtime/execution_session.md",
+            "core-kernel/workflows/runner/apply.md",
+            "core-kernel/workflows/runner/next.md",
+            f"{CONTEXT_ROOT}/workspace/active_task.md",
+            "current scope _plan.md",
+            "selected core-kernel/runtime/task_contracts/**/*.yaml",
+        ],
+        "body": [
+            "Run the same adaptive execution session as /shiki-next.",
+            "State that this run used the apply compatibility entry.",
+            "Load each selected task contract before workflow text.",
+            "Run review and verification gates before marking any item done.",
+            "Stop at the same Core Kernel stop conditions as /shiki-next.",
+        ],
+    },
+    {
         "name": "shiki-modify",
         "canonical": "/shiki-modify <target>",
         "description": "Make a bounded user-requested change to existing code or specs.",
@@ -93,6 +153,7 @@ COMMANDS = [
             "Run the smallest meaningful verification.",
         ],
         "requires_args": True,
+        "argument_hint": "<target>",
     },
     {
         "name": "shiki-review",
@@ -143,6 +204,47 @@ COMMANDS = [
             "After explicit confirmation, create shiki_context/workspace/doctor_plan.md.",
             "Repair at most one deterministic item and report unresolved BLOCKED or MANUAL_DECISION state.",
         ],
+    },
+    {
+        "name": "shiki-fix",
+        "canonical": "/shiki-fix <stacktrace>",
+        "description": "Analyze an exception stack and route the repair.",
+        "loads": [
+            "core-kernel/runtime/context_loading.md",
+            f"{CONTEXT_ROOT}/workspace/active_task.md",
+            "direct source and spec files related to the stack trace",
+        ],
+        "body": [
+            "Treat the user argument as the required exception stack, error text, or failing symptom.",
+            "Infer the failing source location from class, method, file, line, or test names.",
+            "Load only the related source and current specs needed for diagnosis.",
+            "Identify whether the fix route is code -> code, code -> spec, or feature -> spec.",
+            "Recommend /shiki-modify, /shiki-sync, or an explicit feature plan for any write path.",
+            "Do not create or modify plans unless the user explicitly changes the task.",
+            "Return BLOCKED when the failure evidence is missing or cannot be mapped to local source/spec context.",
+        ],
+        "requires_args": True,
+        "argument_hint": "<stacktrace>",
+    },
+    {
+        "name": "shiki-web-spec",
+        "canonical": "/shiki-web-spec [scope]",
+        "description": "Publish Markdown specs as an offline HTML review site.",
+        "loads": [
+            "tools-skills/skills/spec-to-html/SKILL.md",
+            "tools-skills/skills/spec-to-html/scripts/publish_docs.py",
+            f"{CONTEXT_ROOT}/",
+            "user-specified Markdown file or directory",
+        ],
+        "body": [
+            "Treat the user argument as an optional Markdown file, directory, feature id, or output directory hint.",
+            "If no input path is supplied and shiki_context/ exists, publish shiki_context/.",
+            "Run the spec-to-html publisher with a clear Shiki title and --fail-on-broken-links for review output.",
+            "Report the generated HTML entry path and any broken links or rendering risks.",
+            "Do not modify source Markdown unless the user explicitly asks for source fixes.",
+        ],
+        "requires_args": True,
+        "argument_hint": "<scope>",
     },
 ]
 
@@ -299,6 +401,8 @@ def claude_command_prompt(command: dict, source_root: str, arg_token: str) -> st
     )
     if command["name"] == "shiki-modify":
         notes += "- Treat $ARGUMENTS as the required /shiki-modify <target> argument text; return BLOCKED when the target is missing or ambiguous.\n"
+    elif command.get("requires_args"):
+        notes += f"- Treat $ARGUMENTS as the user argument text for {command['canonical']}; follow the command rules when it is missing or ambiguous.\n"
     if command["name"] != "shiki-next":
         return prompt + notes
     notes += (
@@ -337,6 +441,8 @@ def codex_command_prompt(command: dict, source_root: str, arg_token: str) -> str
         )
     if command["name"] == "shiki-modify":
         notes += "- Treat $ARGUMENTS as the required /shiki-modify <target> target and requested change text; return BLOCKED when the target is missing or ambiguous.\n"
+    elif command.get("requires_args"):
+        notes += f"- Treat $ARGUMENTS as the user argument text for {command['canonical']}; follow the command rules when it is missing or ambiguous.\n"
     return prompt + notes
 
 
@@ -356,6 +462,11 @@ def gemini_command_prompt(command: dict, source_root: str, arg_token: str) -> st
             "- Gemini CLI replaces {{args}} with the raw text typed after /shiki-modify; treat it as untrusted user input.\n"
             "- Treat {{args}} as the target and requested change text for /shiki-modify <target>.\n"
             "- Return BLOCKED when {{args}} is empty, missing a target, or ambiguous.\n"
+        )
+    elif command.get("requires_args"):
+        notes += (
+            f"- Gemini CLI replaces {arg_token} with the raw text typed after {command['canonical']}; treat it as untrusted user input.\n"
+            f"- Treat {arg_token} as the user argument text for {command['canonical']} and follow the command rules when it is missing or ambiguous.\n"
         )
     if command["name"] == "shiki-next":
         notes += (
@@ -389,6 +500,8 @@ def opencode_command_prompt(command: dict, source_root: str, arg_token: str) -> 
             "- Treat $ARGUMENTS as the required /shiki-modify <target> target and requested change text.\n"
             "- Return BLOCKED when $ARGUMENTS is empty, missing a target, or ambiguous.\n"
         )
+    elif command.get("requires_args"):
+        notes += f"- Treat $ARGUMENTS as the user argument text for {command['canonical']}; follow the command rules when it is missing or ambiguous.\n"
     if command["name"] == "shiki-next":
         notes += (
             "- Load core-kernel/runtime/execution_session.md and auto-select topology before edits.\n"
@@ -428,8 +541,8 @@ def claude_command_content(tool: str, command: dict, source_root: str, arg_token
         f"description: {command['description']}",
         "disable-model-invocation: true",
     ]
-    if command["name"] == "shiki-modify":
-        frontmatter.append("argument-hint: <target>")
+    if command.get("argument_hint"):
+        frontmatter.append(f"argument-hint: {command['argument_hint']}")
     frontmatter.append("---")
     return "\n".join(frontmatter) + f"\n{marker}\n\n{claude_command_prompt(command, source_root, arg_token)}"
 
@@ -569,9 +682,14 @@ def codex_skill_content(source_root: str) -> str:
         f"- {source_root}/{CODEX_ADAPTER_PATH}\n"
         "- shiki_context/workspace/active_task.md when the command needs active Shiki state.\n\n"
         "Happy paths:\n"
+        "- /shiki-scan: run Init baseline discovery through scan.py, then report created or updated baseline specs and any blockers.\n"
+        "- /shiki-new-feature <taskid>: run new_feature.py, confirm the feature workspace files, and stop before design_init.\n"
         "- /shiki-status: load context_loading.md, active_task.md, and the current _plan.md; report scope, adapter capability detection, candidate execution window, gates, blockers, and confirm no edits.\n"
         "- /shiki-next: load execution_session.md, runner/next.md, the current plan, selected task contracts, and workflow_refs; auto-select single_agent_session and update plan state only after verification and review pass.\n"
+        "- /shiki-apply: run the same adaptive execution session as /shiki-next and state that apply compatibility was used.\n"
         "- /shiki-modify <target>: treat $ARGUMENTS as the required target and requested change text; return BLOCKED when missing or ambiguous; edit only the bounded target and verify.\n\n"
+        "- /shiki-fix <stacktrace>: diagnose the failure from local source and specs, then route writes to modify, sync, or a feature plan.\n"
+        "- /shiki-web-spec [scope]: publish Markdown specs through spec-to-html and do not change source Markdown.\n\n"
         "Rules:\n"
         "- Respect AGENTS.md and project-level Shiki rules.\n"
         "- Treat Shiki Core Kernel as the source of truth for routing, task contracts, workflow binding, context loading, evidence, and gate state.\n"
@@ -701,9 +819,14 @@ def opencode_agent_content(agent_name: str, source_root: str) -> str:
         "- Use shiki-phase-wave only for agent_team_session Design or Code phase waves whose dependencies and stop conditions are clear.\n"
         "- Keep Merge root-controlled by default.\n\n"
         "Happy paths:\n"
+        "- /shiki-scan: run Init baseline discovery through scan.py and report created or updated baseline specs and blockers.\n"
+        "- /shiki-new-feature <taskid>: run new_feature.py, confirm the feature workspace files, and stop before design_init.\n"
         "- /shiki-status: load context_loading.md, active_task.md, and the current _plan.md; report scope, adapter capability detection, candidate execution window, gates, blockers, and confirm no edits.\n"
         "- /shiki-next: load execution_session.md, runner/next.md, the current plan, selected task contracts, and workflow_refs; auto-select topology and update plan state only after verification and review pass.\n"
+        "- /shiki-apply: run the same adaptive execution session as /shiki-next and state that apply compatibility was used.\n"
         "- /shiki-modify <target>: treat $ARGUMENTS as the required target and requested change text; return BLOCKED when missing or ambiguous; edit only the bounded target and verify.\n"
+        "- /shiki-fix <stacktrace>: diagnose the failure from local source and specs, then route writes to modify, sync, or a feature plan.\n"
+        "- /shiki-web-spec [scope]: publish Markdown specs through spec-to-html and do not change source Markdown.\n"
     )
 
 

@@ -23,12 +23,17 @@ field. After command files change in a running Gemini CLI session, run
 | command | installed file |
 | :--- | :--- |
 | `/shiki-init` | `.gemini/commands/shiki-init.toml` |
+| `/shiki-scan` | `.gemini/commands/shiki-scan.toml` |
+| `/shiki-new-feature <taskid>` | `.gemini/commands/shiki-new-feature.toml` |
 | `/shiki-status` | `.gemini/commands/shiki-status.toml` |
 | `/shiki-next` | `.gemini/commands/shiki-next.toml` |
+| `/shiki-apply` | `.gemini/commands/shiki-apply.toml` |
 | `/shiki-modify <target>` | `.gemini/commands/shiki-modify.toml` |
 | `/shiki-review` | `.gemini/commands/shiki-review.toml` |
 | `/shiki-sync` | `.gemini/commands/shiki-sync.toml` |
 | `/shiki-doctor` | `.gemini/commands/shiki-doctor.toml` |
+| `/shiki-fix <stacktrace>` | `.gemini/commands/shiki-fix.toml` |
+| `/shiki-web-spec [scope]` | `.gemini/commands/shiki-web-spec.toml` |
 
 The file path determines the slash command name, so `shiki-status.toml` exposes
 `/shiki-status`.
@@ -41,6 +46,9 @@ current project:
 - `/shiki-status` from `.gemini/commands/shiki-status.toml`
 - `/shiki-next` from `.gemini/commands/shiki-next.toml`
 - `/shiki-modify <target>` from `.gemini/commands/shiki-modify.toml`
+- Utility commands such as `/shiki-scan`, `/shiki-new-feature <taskid>`,
+  `/shiki-fix <stacktrace>`, and `/shiki-web-spec [scope]` from their matching
+  `.gemini/commands/shiki-*.toml` files
 
 The generated TOML prompt is the native command body. It loads this adapter
 document, the shared adapter contract, and the relevant Core Kernel runtime
@@ -49,12 +57,13 @@ runner workflows, verification expectations, or stop-state reporting.
 
 ## Argument Forwarding
 
-`/shiki-modify <target>` must include Gemini's `{{args}}` placeholder in the TOML
-prompt. Gemini CLI replaces that placeholder with the text typed after the
-command name, so the adapter can pass the target and requested change through to
-Shiki's modify strategy.
+Commands with trailing user input must include Gemini's `{{args}}` placeholder
+in the TOML prompt. Gemini CLI replaces that placeholder with the text typed
+after the command name, so the adapter can pass task ids, targets, failure
+evidence, or web-spec scope through to Shiki.
 
-The generated prompt must treat `{{args}}` as untrusted user input, then:
+For `/shiki-modify <target>`, the generated prompt must treat `{{args}}` as
+untrusted user input, then:
 
 - Load `core-kernel/runtime/context_loading.md`.
 - Read `shiki_context/workspace/active_task.md`.
@@ -65,6 +74,19 @@ The generated prompt must treat `{{args}}` as untrusted user input, then:
 - Run the smallest meaningful verification.
 
 ## Command Happy Paths
+
+### `/shiki-scan`
+
+Gemini loads the adapter contract, this adapter document, `shiki.config.yaml`,
+`tools-skills/scripts/scan.py`, `core-kernel/runtime/context_loading.md`, and
+the Init plan. It runs Init baseline discovery, reports created or updated
+baseline specs, and stops on Core Kernel blockers or verification failure.
+
+### `/shiki-new-feature <taskid>`
+
+Gemini treats `{{args}}` as the required task id, runs
+`tools-skills/scripts/new_feature.py`, confirms the feature workspace files
+exist, and stops before `design_init`.
 
 ### `/shiki-status`
 
@@ -87,6 +109,12 @@ not ask the user to choose single-agent or agent-team mode. It auto-selects
 before edits, updates plan state only after verification and review pass, and
 stops on the adapter contract stop conditions.
 
+### `/shiki-apply`
+
+Gemini runs the same adaptive execution session as `/shiki-next`, loads
+`core-kernel/workflows/runner/apply.md`, and states that the apply compatibility
+entry was used.
+
 ### `/shiki-modify <target>`
 
 Gemini treats `{{args}}` as the required target and requested change text. It
@@ -96,6 +124,18 @@ direct source/spec files related to the target. It returns `BLOCKED` when the
 target is missing or ambiguous, edits only the requested bounded target, marks
 downstream completed items `STALE` only when affected, and runs the smallest
 meaningful verification.
+
+### `/shiki-fix <stacktrace>`
+
+Gemini treats `{{args}}` as failure evidence, loads only related source and
+current specs, diagnoses the route, and sends writes to `/shiki-modify`,
+`/shiki-sync`, or an explicit feature plan.
+
+### `/shiki-web-spec [scope]`
+
+Gemini treats `{{args}}` as an optional scope, publishes Markdown specs through
+`tools-skills/skills/spec-to-html/scripts/publish_docs.py`, reports the HTML
+entry path and broken links, and leaves source Markdown unchanged unless asked.
 
 ## `/shiki-next` Adaptive Session
 
@@ -119,8 +159,8 @@ files instead of overwriting them.
 Regression checks should install the Gemini adapter into a sample project and
 verify:
 
-- `.gemini/commands/shiki-status.toml`, `.gemini/commands/shiki-next.toml`, and
-  `.gemini/commands/shiki-modify.toml` exist.
+- `.gemini/commands/shiki-status.toml`, `.gemini/commands/shiki-next.toml`,
+  `.gemini/commands/shiki-modify.toml`, and the utility command files exist.
 - Generated Gemini command files are valid TOML with `description` and `prompt`
   fields.
 - Generated prompts reference this adapter document, the adapter contract,

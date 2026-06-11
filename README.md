@@ -137,24 +137,34 @@ After install, the primary command surface is:
 
 ```text
 /shiki-init
+/shiki-scan
+/shiki-new-feature <taskid>
 /shiki-status
 /shiki-next
+/shiki-apply
 /shiki-modify <target>
 /shiki-review
+/shiki-sync
 /shiki-doctor
+/shiki-fix <stacktrace>
+/shiki-web-spec [scope]
 ```
 
 Invoke those commands inside the installed coding tool. If the tool was already
 running, reload its command surface or restart the session after installation.
+`/shiki-scan`, `/shiki-new-feature <taskid>`, `/shiki-fix <stacktrace>`, and
+`/shiki-web-spec [scope]` provide the utility command surface for setup,
+diagnosis, and generated spec views.
 
 `/shiki-next` is the user-facing coordinator. It starts an adaptive execution
 session and does not ask the user to choose single-agent or agent-team mode.
 Strong adapters may use bounded batch, phase-wave, or worker delegation
 internally when Core Kernel stop rules allow it, but plan state, task contracts,
 review gates, `output_files`, evidence, and verification remain controlled by
-Shiki Core. `/shiki-sync` remains an advanced compatibility command for explicit
-Code -> Spec synchronization; daily sync behavior should be routed through
-`modify`, `review`, or `doctor` when possible.
+Shiki Core. `/shiki-apply` remains a compatibility entry with the same adaptive
+semantics as `/shiki-next`. `/shiki-sync` remains an advanced compatibility
+command for explicit Code -> Spec synchronization; daily sync behavior should be
+routed through `modify`, `review`, or `doctor` when possible.
 
 `docs/CHEATSHEET.md` remains the fallback prompt panel for agents without an
 installed adapter.

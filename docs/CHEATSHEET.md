@@ -48,16 +48,26 @@ Primary tool-native commands:
 
 ```text
 /shiki-init
+/shiki-scan
+/shiki-new-feature <taskid>
 /shiki-status
 /shiki-next
+/shiki-apply
 /shiki-modify <target>
 /shiki-review
+/shiki-sync
 /shiki-doctor
+/shiki-fix <stacktrace>
+/shiki-web-spec [scope]
 ```
 
-`/shiki-sync` remains an advanced compatibility command for explicit Code ->
-Spec synchronization, but the daily command surface should route most sync needs
-through `modify`, `review`, or `doctor`.
+`/shiki-scan`, `/shiki-new-feature <taskid>`, `/shiki-fix <stacktrace>`, and
+`/shiki-web-spec [scope]` provide the utility command surface for setup,
+diagnosis, and generated spec views.
+`/shiki-apply` is a compatibility entry with the same adaptive semantics as
+`/shiki-next`. `/shiki-sync` remains an advanced compatibility command for
+explicit Code -> Spec synchronization, but the daily command surface should
+route most sync needs through `modify`, `review`, or `doctor`.
 
 Generated project-local files:
 
@@ -72,10 +82,10 @@ Command invocation after install:
 
 | tool | invoke | active-session note |
 | :--- | :--- | :--- |
-| Codex | `/shiki-status`, `/shiki-next`, `/shiki-modify <target>` | restart or reload the project session if prompts/skills were loaded before install |
-| Claude Code | `/shiki-status`, `/shiki-next`, `/shiki-modify <target>` | restart or reload commands after `.claude/commands/` changes |
-| Gemini CLI | `/shiki-status`, `/shiki-next`, `/shiki-modify <target>` | run `/commands reload` after `.gemini/commands/` changes |
-| OpenCode | `/shiki-status`, `/shiki-next`, `/shiki-modify <target>` | restart or reload the project session after `.opencode/commands/` changes |
+| Codex | `/shiki-status`, `/shiki-next`, `/shiki-modify <target>`, plus utility `/shiki-*` commands | restart or reload the project session if prompts/skills were loaded before install |
+| Claude Code | `/shiki-status`, `/shiki-next`, `/shiki-modify <target>`, plus utility `/shiki-*` commands | restart or reload commands after `.claude/commands/` changes |
+| Gemini CLI | `/shiki-status`, `/shiki-next`, `/shiki-modify <target>`, plus utility `/shiki-*` commands | run `/commands reload` after `.gemini/commands/` changes |
+| OpenCode | `/shiki-status`, `/shiki-next`, `/shiki-modify <target>`, plus utility `/shiki-*` commands | restart or reload the project session after `.opencode/commands/` changes |
 
 `/shiki-next` is the user-facing coordinator. It starts an adaptive execution
 session and does not ask the user to choose single-agent or agent-team mode.
@@ -307,9 +317,22 @@ Steps:
 5. Do not create or modify plans unless explicitly asked.
 ```
 
-## 10. publish docs
+## 10. web spec
 
 Publish Markdown specs as an offline HTML site.
+
+```text
+Use Shiki web spec.
+
+Input:
+- Scope: <optional markdown file, directory, feature id, or output directory>
+
+Rules:
+1. If no scope is provided and shiki_context/ exists, publish shiki_context/.
+2. Use the spec-to-html publisher with --fail-on-broken-links.
+3. Report the generated HTML entry path and any broken links.
+4. Do not modify source Markdown unless asked.
+```
 
 ```bash
 python shiki/tools-skills/skills/spec-to-html/scripts/publish_docs.py <input-path> --title "Shiki Spec" --fail-on-broken-links

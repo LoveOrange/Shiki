@@ -62,12 +62,17 @@ requires a documented alias:
 | command | purpose |
 | :--- | :--- |
 | `/shiki-init` | Initialize or repair the project-local Shiki context scaffold. |
+| `/shiki-scan` | Run Init baseline discovery and write Shiki baseline specs. |
+| `/shiki-new-feature <taskid>` | Create a new Shiki feature workspace. |
 | `/shiki-status` | Report current scope, next runnable item, gates, and blockers without changing files. |
 | `/shiki-next` | Execute the next allowed Shiki plan work through Core Kernel contracts. |
+| `/shiki-apply` | Compatibility entry with the same adaptive semantics as `/shiki-next`. |
 | `/shiki-modify <target>` | Make a bounded user-requested change to existing code or specs. |
 | `/shiki-review` | Review produced files and implementation alignment without changing files. |
 | `/shiki-sync` | Plan and apply bounded Code -> Spec synchronization. |
 | `/shiki-doctor` | Diagnose or repair Shiki context structure. |
+| `/shiki-fix <stacktrace>` | Analyze an exception stack or failure text and route the repair. |
+| `/shiki-web-spec [scope]` | Publish Markdown specs as an offline HTML review site. |
 
 Adapters may expose host-tool aliases, but help text must point back to these
 canonical command names.
@@ -81,12 +86,17 @@ replace the referenced workflow or task contract logic.
 | command | Core Kernel entry points | default write behavior |
 | :--- | :--- | :--- |
 | `/shiki-init` | `tools-skills/scripts/init.py`; `core-kernel/templates/workspace/.gitignore`; selected `tech-stacks/tech-contracts/<stack>/` | Creates or repairs deterministic Shiki context scaffolding. |
+| `/shiki-scan` | `tools-skills/scripts/scan.py`; `core-kernel/runtime/context_loading.md`; `core-kernel/workflows/runner/next.md`; Init task contracts | Writes Init baseline plan rows, project specs, module entrances, and module flows according to the Init plan. |
+| `/shiki-new-feature <taskid>` | `tools-skills/scripts/new_feature.py`; `core-kernel/templates/feature/`; `core-kernel/runtime/phase_contract.md` | Creates a feature workspace and bootstrap plan, then stops before design execution. |
 | `/shiki-status` | `core-kernel/runtime/context_loading.md`; `shiki_context/workspace/active_task.md`; current scope `_plan.md` | Read-only. |
 | `/shiki-next` | `core-kernel/runtime/execution_session.md`; `core-kernel/workflows/runner/next.md`; selected `core-kernel/runtime/task_contracts/**/*.yaml`; selected contract `workflow_ref`; `core-kernel/workflows/runner/batch.md` for execution-window selection | Writes only outputs owned by reviewed items in the adaptive execution session. |
+| `/shiki-apply` | `core-kernel/runtime/execution_session.md`; `core-kernel/workflows/runner/apply.md`; `core-kernel/workflows/runner/next.md`; selected task contracts | Compatibility route that writes the same bounded outputs as `/shiki-next`. |
 | `/shiki-modify <target>` | `core-kernel/runtime/context_loading.md`; direct specs and source files for the target; related task contracts when planned work is affected | Bounded edits to requested targets and stale-state updates only when required. |
 | `/shiki-review` | `core-kernel/runtime/context_loading.md`; relevant L2 AS-IS leaf specs; relevant changed source or spec files | Read-only unless the user explicitly changes the task. |
 | `/shiki-sync` | `core-kernel/runtime/task_contracts/sync/plan.yaml`; `core-kernel/runtime/task_contracts/sync/apply_leaf.yaml` | Creates or updates sync plan first, then at most one target leaf spec per apply step. |
 | `/shiki-doctor` | `core-kernel/runtime/task_contracts/doctor/plan.yaml`; `core-kernel/runtime/task_contracts/doctor/apply_item.yaml` | Read-only by default; repairs at most one deterministic item after confirmation. |
+| `/shiki-fix <stacktrace>` | `core-kernel/runtime/context_loading.md`; `shiki_context/workspace/active_task.md`; direct source/spec evidence named by the failure | Read-only diagnosis by default; routes writes to modify, sync, or a feature plan. |
+| `/shiki-web-spec [scope]` | `tools-skills/skills/spec-to-html/SKILL.md`; `tools-skills/skills/spec-to-html/scripts/publish_docs.py` | Writes derived HTML output only; source Markdown remains read-only unless explicitly requested. |
 
 ## Execution Topologies And Modes
 
@@ -150,6 +160,70 @@ Stop conditions:
 Verification expectations:
 - Confirm expected context directories and required seed files exist.
 - Report no business facts were invented during initialization.
+
+### `/shiki-scan`
+
+Inputs:
+- Optional bounded Init scan scope or compatibility script flag.
+
+Required loaded files:
+- `shiki.config.yaml`
+- `tools-skills/scripts/scan.py`
+- `core-kernel/runtime/context_loading.md`
+- `core-kernel/workflows/runner/next.md`
+- `shiki_context/workspace/active_task.md`
+- `shiki_context/workspace/_plan.md`.
+
+Core mapping:
+- Use or mirror `tools-skills/scripts/scan.py`.
+- Discover configured source entry points and register Init plan rows.
+- Execute pending `init.entrance` and `init.sync` work through task contracts.
+
+Outputs:
+- `shiki_context/workspace/_plan.md`
+- `shiki_context/project/*.md` baseline specs.
+- `shiki_context/modules/*/entrances/*.md`
+- `shiki_context/modules/*/flows/*.md`
+
+Stop conditions:
+- Missing `shiki.config.yaml`.
+- Missing or invalid source root.
+- Ambiguous module ownership.
+- Missing task contract or workflow.
+- `BLOCKED`, `MANUAL_DECISION`, failed review, or failed verification.
+
+Verification expectations:
+- Confirm generated Init plan rows and output files are routable.
+- Report the executed scan phase and created or updated files.
+
+### `/shiki-new-feature <taskid>`
+
+Inputs:
+- Required task id.
+
+Required loaded files:
+- `tools-skills/scripts/new_feature.py`
+- `core-kernel/templates/feature/`
+- `core-kernel/runtime/phase_contract.md`
+
+Core mapping:
+- Run or mirror `tools-skills/scripts/new_feature.py --taskid <taskid>`.
+
+Outputs:
+- `shiki_context/features/<taskid>/design_brief.md`
+- `shiki_context/features/<taskid>/_plan.md`
+- `shiki_context/features/<taskid>/index.md`
+- `shiki_context/features/<taskid>/tests/test_cases.md`
+
+Stop conditions:
+- Missing task id.
+- Missing initialized `shiki_context/`.
+- Feature directory already exists.
+- Missing feature templates.
+
+Verification expectations:
+- Confirm the expected feature workspace files exist.
+- Stop after creation; do not execute `design_init`.
 
 ### `/shiki-status`
 
@@ -218,6 +292,34 @@ Stop conditions:
 Verification expectations:
 - Run the task contract checks or the smallest meaningful project verification.
 - Do not mark an item complete until verification and review pass.
+
+### `/shiki-apply`
+
+Inputs:
+- Optional execution-mode hint accepted by the host adapter.
+
+Required loaded files:
+- `core-kernel/runtime/context_loading.md`
+- `core-kernel/runtime/execution_session.md`
+- `core-kernel/workflows/runner/apply.md`
+- `core-kernel/workflows/runner/next.md`
+- `shiki_context/workspace/active_task.md`
+- Current scope `_plan.md`.
+- Selected item `core-kernel/runtime/task_contracts/**/*.yaml`.
+- Selected contract `workflow_ref`.
+
+Core mapping:
+- Run the same adaptive execution session as `/shiki-next`.
+- State that this run used the apply compatibility entry.
+
+Outputs:
+- Same bounded outputs as `/shiki-next`.
+
+Stop conditions:
+- Same stop conditions as `/shiki-next`.
+
+Verification expectations:
+- Same verification and review gates as `/shiki-next`.
 
 ### `/shiki-modify <target>`
 
@@ -341,6 +443,62 @@ Verification expectations:
 - Confirm repaired paths exist and remain routable.
 - Report any unresolved `BLOCKED` or `MANUAL_DECISION` state.
 
+### `/shiki-fix <stacktrace>`
+
+Inputs:
+- Required exception stack, failing test output, error message, or symptom.
+
+Required loaded files:
+- `core-kernel/runtime/context_loading.md`
+- `shiki_context/workspace/active_task.md`
+- Direct source files and current specs related to the failure evidence.
+
+Core mapping:
+- Use the `fix` plan strategy in `core-kernel/runtime/context_loading.md` when active scope is needed.
+- Diagnose the failing source and compare it with current specs.
+- Route the write path to `/shiki-modify`, `/shiki-sync`, or an explicit feature plan.
+
+Outputs:
+- Root-cause summary.
+- Source/spec evidence inspected.
+- Recommended route for any write operation.
+
+Stop conditions:
+- Missing failure evidence.
+- Failure cannot be mapped to local source or specs.
+- Required product or design decision is missing.
+
+Verification expectations:
+- Read-only by default.
+- Do not create or modify plans unless the user explicitly changes the task.
+
+### `/shiki-web-spec [scope]`
+
+Inputs:
+- Optional Markdown file, directory, feature id, output directory, or scope hint.
+
+Required loaded files:
+- `tools-skills/skills/spec-to-html/SKILL.md`
+- `tools-skills/skills/spec-to-html/scripts/publish_docs.py`
+- User-specified Markdown file or directory, or `shiki_context/` when no input is supplied.
+
+Core mapping:
+- Run the spec-to-html publisher with a clear Shiki title.
+- Use `--fail-on-broken-links` for review output.
+
+Outputs:
+- Derived HTML site, normally under `web_spec/` or the requested output directory.
+
+Stop conditions:
+- Missing input path when `shiki_context/` is absent.
+- Broken links when link checking is enabled.
+- Output path would overwrite unrelated user files.
+
+Verification expectations:
+- Report the generated HTML entry path.
+- Report broken links or rendering risks.
+- Do not modify source Markdown unless the user explicitly asks for source fixes.
+
 ## Status And Failure Reporting
 
 Adapters must report Core Kernel stop states in a stable shape. Host tools may
@@ -407,7 +565,7 @@ needed to expose the canonical commands. Installed files must:
 - Reference `core-kernel/runtime/context_loading.md`.
 - Reference `core-kernel/runtime/execution_session.md` for `/shiki-next`.
 - Reference Core Kernel task contracts instead of embedding their business logic.
-- Include command help for `/shiki-status`, `/shiki-next`, and `/shiki-modify <target>`.
+- Include command help for `/shiki-status`, `/shiki-next`, `/shiki-modify <target>`, and the utility commands.
 - Record execution topology support in adapter manifests.
 - Keep generated adapter metadata separate from `shiki_context/` business facts.
 - Be safe to regenerate without overwriting user-authored source files.

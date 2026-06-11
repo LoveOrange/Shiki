@@ -30,12 +30,17 @@ verification.
 | command | installed file | agent | subtask |
 | :--- | :--- | :--- | :--- |
 | `/shiki-init` | `.opencode/commands/shiki-init.md` | `shiki-runner` | `false` |
+| `/shiki-scan` | `.opencode/commands/shiki-scan.md` | `shiki-runner` | `false` |
+| `/shiki-new-feature <taskid>` | `.opencode/commands/shiki-new-feature.md` | `shiki-runner` | `false` |
 | `/shiki-status` | `.opencode/commands/shiki-status.md` | `shiki-runner` | `false` |
 | `/shiki-next` | `.opencode/commands/shiki-next.md` | `shiki-runner` | `false` |
+| `/shiki-apply` | `.opencode/commands/shiki-apply.md` | `shiki-runner` | `false` |
 | `/shiki-modify <target>` | `.opencode/commands/shiki-modify.md` | `shiki-runner` | `false` |
 | `/shiki-review` | `.opencode/commands/shiki-review.md` | `shiki-reviewer` | `true` |
 | `/shiki-sync` | `.opencode/commands/shiki-sync.md` | `shiki-runner` | `false` |
 | `/shiki-doctor` | `.opencode/commands/shiki-doctor.md` | `shiki-runner` | `false` |
+| `/shiki-fix <stacktrace>` | `.opencode/commands/shiki-fix.md` | `shiki-runner` | `false` |
+| `/shiki-web-spec [scope]` | `.opencode/commands/shiki-web-spec.md` | `shiki-runner` | `false` |
 
 OpenCode command files must not use `!` shell interpolation to preload Shiki
 state. They should instruct the selected agent to read the required files and
@@ -49,6 +54,9 @@ current project:
 - `/shiki-status` from `.opencode/commands/shiki-status.md`
 - `/shiki-next` from `.opencode/commands/shiki-next.md`
 - `/shiki-modify <target>` from `.opencode/commands/shiki-modify.md`
+- Utility commands such as `/shiki-scan`, `/shiki-new-feature <taskid>`,
+  `/shiki-fix <stacktrace>`, and `/shiki-web-spec [scope]` from their matching
+  `.opencode/commands/shiki-*.md` files
 
 The generated markdown prompt is the native command body. It loads this adapter
 document, the shared adapter contract, and the relevant Core Kernel runtime
@@ -58,12 +66,13 @@ stop-state reporting.
 
 ## Argument Forwarding
 
-`/shiki-modify <target>` must include OpenCode's `$ARGUMENTS` placeholder.
-OpenCode replaces `$ARGUMENTS` with the raw text typed after the command name,
-so the adapter can pass the target and requested change through to Shiki's
-modify strategy.
+Commands with trailing user input must include OpenCode's `$ARGUMENTS`
+placeholder. OpenCode replaces `$ARGUMENTS` with the raw text typed after the
+command name, so the adapter can pass task ids, targets, failure evidence, or
+web-spec scope through to Shiki.
 
-The generated prompt must treat `$ARGUMENTS` as untrusted user input, then:
+For `/shiki-modify <target>`, the generated prompt must treat `$ARGUMENTS` as
+untrusted user input, then:
 
 - Load `core-kernel/runtime/context_loading.md`.
 - Read `shiki_context/workspace/active_task.md`.
@@ -74,6 +83,20 @@ The generated prompt must treat `$ARGUMENTS` as untrusted user input, then:
 - Run the smallest meaningful verification.
 
 ## Command Happy Paths
+
+### `/shiki-scan`
+
+OpenCode runs the command with `shiki-runner`. The runner loads the adapter
+contract, this adapter document, `shiki.config.yaml`,
+`tools-skills/scripts/scan.py`, `core-kernel/runtime/context_loading.md`, and
+the Init plan. It runs Init baseline discovery, reports created or updated
+baseline specs, and stops on Core Kernel blockers or verification failure.
+
+### `/shiki-new-feature <taskid>`
+
+OpenCode treats `$ARGUMENTS` as the required task id, runs
+`tools-skills/scripts/new_feature.py`, confirms the feature workspace files
+exist, and stops before `design_init`.
 
 ### `/shiki-status`
 
@@ -96,6 +119,12 @@ auto-selects topology from adapter metadata, plan state, direct context size,
 and stop conditions, updates plan state only after verification and review pass,
 and stops on the adapter contract stop conditions.
 
+### `/shiki-apply`
+
+OpenCode runs the same adaptive execution session as `/shiki-next`, loads
+`core-kernel/workflows/runner/apply.md`, and states that the apply compatibility
+entry was used.
+
 ### `/shiki-modify <target>`
 
 OpenCode treats `$ARGUMENTS` as the required target and requested change text.
@@ -105,6 +134,19 @@ direct source/spec files related to the target. It returns `BLOCKED` when the
 target is missing or ambiguous, edits only the requested bounded target, marks
 downstream completed items `STALE` only when affected, and runs the smallest
 meaningful verification.
+
+### `/shiki-fix <stacktrace>`
+
+OpenCode treats `$ARGUMENTS` as failure evidence, loads only related source and
+current specs, diagnoses the route, and sends writes to `/shiki-modify`,
+`/shiki-sync`, or an explicit feature plan.
+
+### `/shiki-web-spec [scope]`
+
+OpenCode treats `$ARGUMENTS` as an optional scope, publishes Markdown specs
+through `tools-skills/skills/spec-to-html/scripts/publish_docs.py`, reports the
+HTML entry path and broken links, and leaves source Markdown unchanged unless
+asked.
 
 ## Installed Agents
 
@@ -169,8 +211,8 @@ blocks existing user-owned command or agent files instead of overwriting them.
 Regression checks should install the OpenCode adapter into a sample project and
 verify:
 
-- `.opencode/commands/shiki-status.md`, `.opencode/commands/shiki-next.md`, and
-  `.opencode/commands/shiki-modify.md` exist.
+- `.opencode/commands/shiki-status.md`, `.opencode/commands/shiki-next.md`,
+  `.opencode/commands/shiki-modify.md`, and the utility command files exist.
 - `.opencode/agents/shiki-runner.md`, `.opencode/agents/shiki-reviewer.md`, and
   `.opencode/agents/shiki-phase-wave.md` exist.
 - Generated command files reference this adapter document, the adapter contract,

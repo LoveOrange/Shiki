@@ -7,8 +7,10 @@ commands under `.claude/commands/` and installs an optional project subagent at
 `.claude/agents/shiki-phase-wave.md`.
 
 Claude Code treats project command files as custom commands. Each generated
-command includes frontmatter with a `description`; `/shiki-modify` also includes
-`argument-hint: <target>` so the target argument is visible at invocation time.
+command includes frontmatter with a `description`; commands that accept trailing
+input also include `argument-hint` so the expected argument is visible at
+invocation time. For example, `/shiki-modify` includes
+`argument-hint: <target>`.
 
 This adapter follows `user-interface/adapters/tool_adapter_contract_v1.md`.
 Shiki Core remains the source of truth for plan routing, task contracts,
@@ -19,12 +21,17 @@ workflow binding, context loading, evidence, and gate state.
 | file | purpose |
 | :--- | :--- |
 | `.claude/commands/shiki-init.md` | Initialize or repair the local Shiki context scaffold. |
+| `.claude/commands/shiki-scan.md` | Run Init baseline discovery and write baseline specs. |
+| `.claude/commands/shiki-new-feature.md` | Create a feature workspace from a task id. |
 | `.claude/commands/shiki-status.md` | Report the active plan and next runnable item without edits. |
 | `.claude/commands/shiki-next.md` | Execute Shiki plan work through Core Kernel contracts. |
+| `.claude/commands/shiki-apply.md` | Compatibility entry with `/shiki-next` semantics. |
 | `.claude/commands/shiki-modify.md` | Apply a bounded requested change to a target. |
 | `.claude/commands/shiki-review.md` | Review implementation/spec alignment without edits. |
 | `.claude/commands/shiki-sync.md` | Plan and apply bounded Code -> Spec sync. |
 | `.claude/commands/shiki-doctor.md` | Diagnose or repair context-store structure. |
+| `.claude/commands/shiki-fix.md` | Analyze a failure and route the repair. |
+| `.claude/commands/shiki-web-spec.md` | Publish Markdown specs as HTML. |
 | `.claude/agents/shiki-phase-wave.md` | Optional Design/Code wave worker used only by the root session. |
 
 The command files set `disable-model-invocation: true` because Shiki commands
@@ -32,6 +39,20 @@ should run only when the user or root session invokes the canonical command
 explicitly.
 
 ## Command Happy Paths
+
+### `/shiki-scan`
+
+The command loads the adapter contract, this adapter document,
+`shiki.config.yaml`, `tools-skills/scripts/scan.py`,
+`core-kernel/runtime/context_loading.md`, and the Init plan. It runs Init
+baseline discovery, reports created or updated baseline specs, and stops on Core
+Kernel blockers or verification failure.
+
+### `/shiki-new-feature <taskid>`
+
+The command treats `$ARGUMENTS` as the required task id, runs
+`tools-skills/scripts/new_feature.py`, confirms the feature workspace files
+exist, and stops before `design_init`.
 
 ### `/shiki-status`
 
@@ -63,6 +84,12 @@ session runs verification and review, updates plan state only for verified and
 reviewed items, and stops on `BLOCKED`, `MANUAL_DECISION`,
 `VERIFICATION_FAILED`, or failed review.
 
+### `/shiki-apply`
+
+The command runs the same adaptive execution session as `/shiki-next`, loads
+`core-kernel/workflows/runner/apply.md`, and states that the apply compatibility
+entry was used.
+
 ### `/shiki-modify <target>`
 
 The command requires the target argument from `$ARGUMENTS`, loads the adapter
@@ -71,6 +98,19 @@ active task, the current plan, and direct source/spec files related to the
 target. It makes only the bounded requested change, marks downstream completed
 items `STALE` only when the change affects them, and runs the smallest
 meaningful verification.
+
+### `/shiki-fix <stacktrace>`
+
+The command treats `$ARGUMENTS` as failure evidence, loads only related source
+and current specs, diagnoses the route, and sends writes to `/shiki-modify`,
+`/shiki-sync`, or an explicit feature plan.
+
+### `/shiki-web-spec [scope]`
+
+The command treats `$ARGUMENTS` as an optional scope, publishes Markdown specs
+through `tools-skills/skills/spec-to-html/scripts/publish_docs.py`, reports the
+HTML entry path and broken links, and leaves source Markdown unchanged unless
+asked.
 
 ## Root-Controlled Orchestration
 

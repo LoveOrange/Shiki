@@ -110,6 +110,7 @@ Then installed adapter files reference the v1 adapter contract
 And the contract defines the Codex, Claude Code, Gemini CLI, and OpenCode capability matrix
 And each canonical command maps to Core Kernel entry points before host-tool-specific behavior
 And `/shiki-status`, `/shiki-next`, and `/shiki-modify <target>` map to Core Kernel context loading, task contracts, and workflow references
+And utility commands `/shiki-scan`, `/shiki-new-feature <taskid>`, `/shiki-apply`, `/shiki-fix <stacktrace>`, and `/shiki-web-spec [scope]` map to scripts or workflows instead of duplicating process logic
 And adapter execution reports `BLOCKED`, `MANUAL_DECISION`, and verification failures without marking incomplete plan items done.
 
 ## HIT-014 Adapter Install And Commands
@@ -118,6 +119,7 @@ Given a consumer project contains `shiki/`
 When `python shiki/tools-skills/scripts/install_agent_adapter.py --tool all` runs
 Then Codex, Claude Code, Gemini CLI, and OpenCode project-local command files are created
 And repeated installer runs skip matching Shiki-managed files without duplicates
+And generated manifests include the utility command files
 And `/shiki-next` remains the user-facing command while adaptive topology selection, bounded batch, phase-wave, and subagent execution stay internal strategies.
 
 ## HIT-015 Claude Code Phase-Wave Adapter
@@ -132,11 +134,12 @@ And the worker refuses Merge, plan-state updates, missing assignment fields, amb
 ## HIT-016 Tool-Native Command Invocation Happy Paths
 
 Given Codex, Claude Code, Gemini CLI, and OpenCode adapters are installed into a consumer project
-When a user invokes `/shiki-status`, `/shiki-next`, or `/shiki-modify <target>` from the native command surface
+When a user invokes `/shiki-status`, `/shiki-next`, `/shiki-modify <target>`, or a utility command from the native command surface
 Then each command loads the adapter contract before tool-specific guidance
 And `/shiki-status` loads Core Kernel context and remains read-only
 And `/shiki-next` loads execution_session and runner/next, auto-selects topology, loads task contracts, and marks plan state only after review and verification
 And `/shiki-modify <target>` treats trailing command text as the required bounded target and returns `BLOCKED` when the target is missing or ambiguous
+And `/shiki-new-feature <taskid>`, `/shiki-fix <stacktrace>`, and `/shiki-web-spec [scope]` forward host-tool arguments into the generated command body
 And active tool sessions document the required reload or restart step after command files change.
 
 ## HIT-017 Adaptive Coordinator Session
@@ -151,7 +154,7 @@ And it stops at phase gate, context budget boundary, BLOCKED, MANUAL_DECISION, f
 ## HIT-018 Plan State And Review Gate
 
 Given a new or migrated feature plan
-When any task item is completed by `/shiki-next`, sync, or doctor
+When any task item is completed by `/shiki-next`, `/shiki-apply`, sync, or doctor
 Then the plan can record status, output_files, evidence, and review_result
 And status DONE is used only after execution, task-contract checks, verification, and review pass
 And old plans without the new columns remain routable through output_files compatibility

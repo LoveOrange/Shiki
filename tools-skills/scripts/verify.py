@@ -53,35 +53,55 @@ EXPECTED_ADAPTER_FILES = [
     ".shiki/adapters/gemini/manifest.json",
     ".shiki/adapters/opencode/manifest.json",
     ".codex/prompts/shiki-init.md",
+    ".codex/prompts/shiki-scan.md",
+    ".codex/prompts/shiki-new-feature.md",
     ".codex/prompts/shiki-status.md",
     ".codex/prompts/shiki-next.md",
+    ".codex/prompts/shiki-apply.md",
     ".codex/prompts/shiki-modify.md",
     ".codex/prompts/shiki-review.md",
     ".codex/prompts/shiki-sync.md",
     ".codex/prompts/shiki-doctor.md",
+    ".codex/prompts/shiki-fix.md",
+    ".codex/prompts/shiki-web-spec.md",
     ".codex/skills/shiki/SKILL.md",
     ".claude/commands/shiki-init.md",
+    ".claude/commands/shiki-scan.md",
+    ".claude/commands/shiki-new-feature.md",
     ".claude/commands/shiki-status.md",
     ".claude/commands/shiki-next.md",
+    ".claude/commands/shiki-apply.md",
     ".claude/commands/shiki-modify.md",
     ".claude/commands/shiki-review.md",
     ".claude/commands/shiki-sync.md",
     ".claude/commands/shiki-doctor.md",
+    ".claude/commands/shiki-fix.md",
+    ".claude/commands/shiki-web-spec.md",
     ".claude/agents/shiki-phase-wave.md",
     ".gemini/commands/shiki-init.toml",
+    ".gemini/commands/shiki-scan.toml",
+    ".gemini/commands/shiki-new-feature.toml",
     ".gemini/commands/shiki-status.toml",
     ".gemini/commands/shiki-next.toml",
+    ".gemini/commands/shiki-apply.toml",
     ".gemini/commands/shiki-modify.toml",
     ".gemini/commands/shiki-review.toml",
     ".gemini/commands/shiki-sync.toml",
     ".gemini/commands/shiki-doctor.toml",
+    ".gemini/commands/shiki-fix.toml",
+    ".gemini/commands/shiki-web-spec.toml",
     ".opencode/commands/shiki-init.md",
+    ".opencode/commands/shiki-scan.md",
+    ".opencode/commands/shiki-new-feature.md",
     ".opencode/commands/shiki-status.md",
     ".opencode/commands/shiki-next.md",
+    ".opencode/commands/shiki-apply.md",
     ".opencode/commands/shiki-modify.md",
     ".opencode/commands/shiki-review.md",
     ".opencode/commands/shiki-sync.md",
     ".opencode/commands/shiki-doctor.md",
+    ".opencode/commands/shiki-fix.md",
+    ".opencode/commands/shiki-web-spec.md",
     ".opencode/agents/shiki-runner.md",
     ".opencode/agents/shiki-reviewer.md",
     ".opencode/agents/shiki-phase-wave.md",
@@ -221,6 +241,8 @@ def verify_core_consistency() -> None:
         "## 6. modify",
         "## 7. doctor",
         "## 8. sync",
+        "## 9. fix",
+        "## 10. web spec",
     ]:
         if heading not in cheatsheet:
             raise AssertionError(f"CHEATSHEET.md missing entry: {heading}")
@@ -298,7 +320,12 @@ def verify_core_consistency() -> None:
         "install_agent_adapter.py --tool opencode",
         "/shiki-status",
         "/shiki-next",
+        "/shiki-scan",
+        "/shiki-new-feature <taskid>",
+        "/shiki-apply",
         "/shiki-modify <target>",
+        "/shiki-fix <stacktrace>",
+        "/shiki-web-spec [scope]",
         ".codex/prompts/shiki-*.md",
         ".claude/commands/shiki-*.md",
         ".gemini/commands/shiki-*.toml",
@@ -349,19 +376,28 @@ def verify_core_consistency() -> None:
             raise AssertionError(f"adapter contract missing expected guidance: {needle}")
     for command in [
         "/shiki-init",
+        "/shiki-scan",
+        "/shiki-new-feature <taskid>",
         "/shiki-status",
         "/shiki-next",
+        "/shiki-apply",
         "/shiki-modify <target>",
         "/shiki-review",
         "/shiki-sync",
         "/shiki-doctor",
+        "/shiki-fix <stacktrace>",
+        "/shiki-web-spec [scope]",
     ]:
         if command not in adapter_contract:
             raise AssertionError(f"adapter contract missing command: {command}")
     for core_ref in [
+        "tools-skills/scripts/scan.py",
+        "tools-skills/scripts/new_feature.py",
+        "tools-skills/skills/spec-to-html/scripts/publish_docs.py",
         "core-kernel/runtime/context_loading.md",
         "core-kernel/runtime/execution_session.md",
         "core-kernel/workflows/runner/next.md",
+        "core-kernel/workflows/runner/apply.md",
         "core-kernel/workflows/runner/batch.md",
         "core-kernel/runtime/task_contracts/sync/plan.yaml",
         "core-kernel/runtime/task_contracts/sync/apply_leaf.yaml",
@@ -614,13 +650,21 @@ def verify_fixture_workflow() -> None:
         for needle in [
             "adapter_contract_version",
             "v1",
+            "/shiki-scan",
+            "/shiki-new-feature <taskid>",
             "/shiki-status",
             "/shiki-next",
+            "/shiki-apply",
             "/shiki-modify <target>",
+            "/shiki-fix <stacktrace>",
+            "/shiki-web-spec [scope]",
             "shiki-phase-wave",
             "Merge phase remains root-controlled",
             "disable-model-invocation: true",
             "argument-hint: <target>",
+            "argument-hint: <taskid>",
+            "argument-hint: <stacktrace>",
+            "argument-hint: <scope>",
             "Required root assignment",
             "selected topology",
             "selected internal execution mode",
@@ -664,21 +708,45 @@ def verify_fixture_workflow() -> None:
                 "shiki_context/workspace/active_task.md",
                 "Keep this command read-only and confirm no edits were made.",
             ],
+            ".codex/prompts/shiki-new-feature.md": [
+                "/shiki-new-feature <taskid>",
+                "$ARGUMENTS",
+                "tools-skills/scripts/new_feature.py",
+                "Treat $ARGUMENTS as the user argument text for /shiki-new-feature <taskid>",
+                "Stop after initialization; do not continue into design_init.",
+            ],
             ".codex/prompts/shiki-next.md": [
                 "shiki/user-interface/adapters/tool_adapter_contract_v1.md",
                 "shiki/user-interface/adapters/codex_adapter.md",
-            "core-kernel/workflows/runner/next.md",
-            "core-kernel/runtime/execution_session.md",
-            "core-kernel/runtime/task_contracts/",
-            "State the selected topology and selected internal execution mode before edits",
-            "verification and review pass",
-        ],
+                "core-kernel/workflows/runner/next.md",
+                "core-kernel/runtime/execution_session.md",
+                "core-kernel/runtime/task_contracts/",
+                "State the selected topology and selected internal execution mode before edits",
+                "verification and review pass",
+            ],
+            ".codex/prompts/shiki-apply.md": [
+                "/shiki-apply",
+                "core-kernel/workflows/runner/apply.md",
+                "Run the same adaptive execution session as /shiki-next.",
+            ],
             ".codex/prompts/shiki-modify.md": [
                 "shiki/user-interface/adapters/tool_adapter_contract_v1.md",
                 "shiki/user-interface/adapters/codex_adapter.md",
                 "$ARGUMENTS",
                 "Treat $ARGUMENTS as the required /shiki-modify <target>",
                 "return BLOCKED when the target is missing or ambiguous",
+            ],
+            ".codex/prompts/shiki-fix.md": [
+                "/shiki-fix <stacktrace>",
+                "$ARGUMENTS",
+                "direct source and spec files related to the stack trace",
+                "Recommend /shiki-modify, /shiki-sync, or an explicit feature plan",
+            ],
+            ".codex/prompts/shiki-web-spec.md": [
+                "/shiki-web-spec [scope]",
+                "$ARGUMENTS",
+                "tools-skills/skills/spec-to-html/scripts/publish_docs.py",
+                "Do not modify source Markdown unless the user explicitly asks for source fixes.",
             ],
             ".claude/commands/shiki-status.md": [
                 "disable-model-invocation: true",
@@ -687,15 +755,21 @@ def verify_fixture_workflow() -> None:
                 "core-kernel/runtime/context_loading.md",
                 "Do not edit files.",
             ],
+            ".claude/commands/shiki-new-feature.md": [
+                "disable-model-invocation: true",
+                "argument-hint: <taskid>",
+                "$ARGUMENTS",
+                "tools-skills/scripts/new_feature.py",
+            ],
             ".claude/commands/shiki-next.md": [
                 "disable-model-invocation: true",
                 "shiki/user-interface/adapters/tool_adapter_contract_v1.md",
                 "shiki/user-interface/adapters/claude_code_adapter.md",
-            "core-kernel/workflows/runner/next.md",
-            "core-kernel/runtime/execution_session.md",
-            "State the selected topology and selected execution mode before edits",
-            "root Claude Code session responsible for plan state",
-            "update status, output_files, evidence, and review_result only for passing items",
+                "core-kernel/workflows/runner/next.md",
+                "core-kernel/runtime/execution_session.md",
+                "State the selected topology and selected execution mode before edits",
+                "root Claude Code session responsible for plan state",
+                "update status, output_files, evidence, and review_result only for passing items",
             ],
             ".claude/commands/shiki-modify.md": [
                 "disable-model-invocation: true",
@@ -704,6 +778,18 @@ def verify_fixture_workflow() -> None:
                 "shiki/user-interface/adapters/claude_code_adapter.md",
                 "$ARGUMENTS",
                 "return BLOCKED when the target is missing or ambiguous",
+            ],
+            ".claude/commands/shiki-fix.md": [
+                "disable-model-invocation: true",
+                "argument-hint: <stacktrace>",
+                "$ARGUMENTS",
+                "Recommend /shiki-modify, /shiki-sync, or an explicit feature plan",
+            ],
+            ".claude/commands/shiki-web-spec.md": [
+                "disable-model-invocation: true",
+                "argument-hint: <scope>",
+                "$ARGUMENTS",
+                "tools-skills/skills/spec-to-html/scripts/publish_docs.py",
             ],
         }
         for relative, expectations in command_invocation_expectations.items():
@@ -725,8 +811,22 @@ def verify_fixture_workflow() -> None:
             raise AssertionError("Gemini manifest must support project-local install")
         if ".gemini/commands/shiki-modify.toml" not in gemini_manifest["command_files"]:
             raise AssertionError("Gemini manifest missing shiki-modify command file")
+        for relative in [
+            ".gemini/commands/shiki-new-feature.toml",
+            ".gemini/commands/shiki-apply.toml",
+            ".gemini/commands/shiki-fix.toml",
+            ".gemini/commands/shiki-web-spec.toml",
+        ]:
+            if relative not in gemini_manifest["command_files"]:
+                raise AssertionError(f"Gemini manifest missing command file: {relative}")
 
         gemini_command_expectations = {
+            "shiki-new-feature": [
+                "{{args}}",
+                "tools-skills/scripts/new_feature.py",
+                "Treat {{args}} as the user argument text for /shiki-new-feature <taskid>",
+                "Stop after initialization; do not continue into design_init.",
+            ],
             "shiki-status": [
                 "core-kernel/runtime/context_loading.md",
                 "shiki_context/workspace/active_task.md",
@@ -741,10 +841,24 @@ def verify_fixture_workflow() -> None:
                 "Gemini CLI has no Shiki subagent surface",
                 "verification and review pass",
             ],
+            "shiki-apply": [
+                "core-kernel/workflows/runner/apply.md",
+                "Run the same adaptive execution session as /shiki-next.",
+            ],
             "shiki-modify": [
                 "{{args}}",
                 "Return BLOCKED when {{args}} is empty, missing a target, or ambiguous.",
                 "direct specs and source files related to the target",
+            ],
+            "shiki-fix": [
+                "{{args}}",
+                "direct source and spec files related to the stack trace",
+                "Recommend /shiki-modify, /shiki-sync, or an explicit feature plan",
+            ],
+            "shiki-web-spec": [
+                "{{args}}",
+                "tools-skills/skills/spec-to-html/scripts/publish_docs.py",
+                "Do not modify source Markdown unless the user explicitly asks for source fixes.",
             ],
         }
         for command_name, expectations in gemini_command_expectations.items():
@@ -776,8 +890,23 @@ def verify_fixture_workflow() -> None:
         ]:
             if relative not in opencode_manifest["agent_files"]:
                 raise AssertionError(f"OpenCode manifest missing agent file: {relative}")
+        for relative in [
+            ".opencode/commands/shiki-new-feature.md",
+            ".opencode/commands/shiki-apply.md",
+            ".opencode/commands/shiki-fix.md",
+            ".opencode/commands/shiki-web-spec.md",
+        ]:
+            if relative not in opencode_manifest["command_files"]:
+                raise AssertionError(f"OpenCode manifest missing command file: {relative}")
 
         opencode_command_expectations = {
+            "shiki-new-feature": [
+                "agent: shiki-runner",
+                "subtask: false",
+                "$ARGUMENTS",
+                "tools-skills/scripts/new_feature.py",
+                "Treat $ARGUMENTS as the user argument text for /shiki-new-feature <taskid>",
+            ],
             "shiki-status": [
                 "agent: shiki-runner",
                 "subtask: false",
@@ -796,6 +925,12 @@ def verify_fixture_workflow() -> None:
                 "After a subagent returns, verify and review each item in shiki-runner context",
                 "Merge phase remains root-controlled by default.",
             ],
+            "shiki-apply": [
+                "agent: shiki-runner",
+                "subtask: false",
+                "core-kernel/workflows/runner/apply.md",
+                "Run the same adaptive execution session as /shiki-next.",
+            ],
             "shiki-modify": [
                 "agent: shiki-runner",
                 "subtask: false",
@@ -803,6 +938,20 @@ def verify_fixture_workflow() -> None:
                 "Treat $ARGUMENTS as the required /shiki-modify <target>",
                 "Return BLOCKED when $ARGUMENTS is empty, missing a target, or ambiguous.",
                 "direct specs and source files related to the target",
+            ],
+            "shiki-fix": [
+                "agent: shiki-runner",
+                "subtask: false",
+                "$ARGUMENTS",
+                "direct source and spec files related to the stack trace",
+                "Recommend /shiki-modify, /shiki-sync, or an explicit feature plan",
+            ],
+            "shiki-web-spec": [
+                "agent: shiki-runner",
+                "subtask: false",
+                "$ARGUMENTS",
+                "tools-skills/skills/spec-to-html/scripts/publish_docs.py",
+                "Do not modify source Markdown unless the user explicitly asks for source fixes.",
             ],
             "shiki-review": [
                 "agent: shiki-reviewer",

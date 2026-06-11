@@ -31,12 +31,17 @@ Codex must respect project-level instructions before running any Shiki command:
 | command | installed file |
 | :--- | :--- |
 | `/shiki-init` | `.codex/prompts/shiki-init.md` |
+| `/shiki-scan` | `.codex/prompts/shiki-scan.md` |
+| `/shiki-new-feature <taskid>` | `.codex/prompts/shiki-new-feature.md` |
 | `/shiki-status` | `.codex/prompts/shiki-status.md` |
 | `/shiki-next` | `.codex/prompts/shiki-next.md` |
+| `/shiki-apply` | `.codex/prompts/shiki-apply.md` |
 | `/shiki-modify <target>` | `.codex/prompts/shiki-modify.md` |
 | `/shiki-review` | `.codex/prompts/shiki-review.md` |
 | `/shiki-sync` | `.codex/prompts/shiki-sync.md` |
 | `/shiki-doctor` | `.codex/prompts/shiki-doctor.md` |
+| `/shiki-fix <stacktrace>` | `.codex/prompts/shiki-fix.md` |
+| `/shiki-web-spec [scope]` | `.codex/prompts/shiki-web-spec.md` |
 
 If the host Codex build does not load project prompt files directly, the
 project-local skill still provides equivalent native activation: ask Codex to
@@ -61,6 +66,20 @@ and verification take precedence over generated prompt convenience text.
 
 ## Command Happy Paths
 
+### `/shiki-scan`
+
+Codex loads the adapter contract, this adapter document, `shiki.config.yaml`,
+`tools-skills/scripts/scan.py`, `core-kernel/runtime/context_loading.md`, and
+the Init plan. It runs Init baseline discovery through the deterministic script
+when available, reports created or updated baseline specs, and stops on Core
+Kernel blockers or verification failure.
+
+### `/shiki-new-feature <taskid>`
+
+Codex treats `$ARGUMENTS` as the required task id, runs
+`tools-skills/scripts/new_feature.py`, confirms the feature workspace files
+exist, and stops before `design_init`.
+
 ### `/shiki-status`
 
 Codex loads the adapter contract, this adapter document,
@@ -82,6 +101,12 @@ choose single-agent or agent-team mode. It auto-selects
 rules allow it, runs review after each item, updates plan state only after
 verification and review pass, and stops on the adapter contract stop conditions.
 
+### `/shiki-apply`
+
+Codex runs the same adaptive execution session as `/shiki-next`, loads
+`core-kernel/workflows/runner/apply.md`, and states that the apply compatibility
+entry was used.
+
 ### `/shiki-modify <target>`
 
 Codex treats `$ARGUMENTS` as the required target and requested change text. It
@@ -91,6 +116,19 @@ direct source/spec files related to the target. It returns `BLOCKED` when the
 target is missing or ambiguous, edits only the requested bounded target, marks
 downstream completed items `STALE` only when affected, and runs the smallest
 meaningful verification.
+
+### `/shiki-fix <stacktrace>`
+
+Codex treats `$ARGUMENTS` as failure evidence, loads only related source and
+current specs, diagnoses whether the write path is code -> code, code -> spec,
+or feature -> spec, and routes writes to `/shiki-modify`, `/shiki-sync`, or an
+explicit feature plan.
+
+### `/shiki-web-spec [scope]`
+
+Codex treats `$ARGUMENTS` as an optional scope, publishes Markdown specs through
+`tools-skills/skills/spec-to-html/scripts/publish_docs.py`, reports the HTML
+entry path and broken links, and leaves source Markdown unchanged unless asked.
 
 ## `/shiki-next` Adaptive Session
 
@@ -131,8 +169,8 @@ Codex must not select `agent_team_session`, `phase_wave`, or
 Regression checks should install the Codex adapter into a sample project and
 verify:
 
-- `.codex/prompts/shiki-status.md`, `.codex/prompts/shiki-next.md`, and
-  `.codex/prompts/shiki-modify.md` exist.
+- `.codex/prompts/shiki-status.md`, `.codex/prompts/shiki-next.md`,
+  `.codex/prompts/shiki-modify.md`, and the utility command prompts exist.
 - `.codex/skills/shiki/SKILL.md` exists and lists the same canonical commands.
 - Generated Codex files reference this adapter document, the adapter contract,
   applicable `AGENTS.md` rules, and Core Kernel runtime docs.
