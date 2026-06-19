@@ -6,7 +6,7 @@ is a test specification, not a command log.
 ## HIT-001 Init Creates Context Store
 
 Given a consumer project contains `shiki/` and `shiki.config.yaml`
-When `python shiki/tools-skills/scripts/init.py` runs
+When `shiki init` or `python shiki/tools-skills/scripts/init.py` runs
 Then `shiki_context/workspace`, `project`, `modules`, `features`, and
 `constitution/tech_contracts` exist
 And selected tech contracts are copied into the project-owned constitution.
@@ -35,7 +35,7 @@ And the flow contains a Discovery Log.
 ## HIT-005 Feature Bootstrap
 
 Given initialized `shiki_context/`
-When `new_feature.py --taskid FEAT-001` runs
+When `shiki new-feature --taskid FEAT-001` or `new_feature.py --taskid FEAT-001` runs
 Then a feature workspace with `design_brief.md`, `_plan.md`, `index.md`,
 and `tests/test_cases.md` exists
 And the bootstrap plan contains the design_init item.
@@ -116,7 +116,7 @@ And adapter execution reports `BLOCKED`, `MANUAL_DECISION`, and verification fai
 ## HIT-014 Adapter Install And Commands
 
 Given a consumer project contains `shiki/`
-When `python shiki/tools-skills/scripts/install_agent_adapter.py --tool all` runs
+When `shiki adapter install --tool all` or `python shiki/tools-skills/scripts/install_agent_adapter.py --tool all` runs
 Then Codex, Claude Code, Gemini CLI, and OpenCode project-local command files are created
 And repeated installer runs skip matching Shiki-managed files without duplicates
 And generated manifests include the utility command files
@@ -159,3 +159,13 @@ Then the plan can record status, output_files, evidence, and review_result
 And status DONE is used only after execution, task-contract checks, verification, and review pass
 And old plans without the new columns remain routable through output_files compatibility
 And doctor can diagnose adapter contract, context interface, plan schema, and spec/index health.
+
+## HIT-019 Pip CLI Install
+
+Given the `shiki` CLI is installed through the `shiki-workflow` Python package
+When `shiki install --tool codex` runs in a consumer project
+Then the project gets a `shiki/` framework directory, initialized `shiki_context/`,
+and Codex adapter command files
+And `shiki adapter install --tool codex --dry-run` reports a plan without writing
+And `shiki new-feature --taskid FEAT-001` creates the feature workspace through
+the same low-level Shiki helpers as the direct Python script path.

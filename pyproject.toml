@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "shiki-workflow"
+version = "0.1.0"
+description = "Installer and command dispatcher for the Shiki workflow harness."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+  { name = "LoveOrange" },
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Topic :: Software Development",
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/LoveOrange/Shiki"
+Repository = "https://github.com/LoveOrange/Shiki"
+
+[project.scripts]
+shiki = "shiki_cli.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["shiki_cli*"]

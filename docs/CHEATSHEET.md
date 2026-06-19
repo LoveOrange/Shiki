@@ -1,7 +1,14 @@
 # Shiki Command Cheatsheet
 
-Install a project-local adapter first when your coding tool supports it. The
-preferred Code Agent path is to ask the tool you are already using:
+Install the `shiki` CLI first, then install a project-local adapter:
+
+```bash
+python3 -m pip install --user git+https://github.com/LoveOrange/Shiki.git
+shiki install --tool codex
+```
+
+Use `--tool all` to install every supported adapter. The equivalent Code Agent
+path is to ask the tool you are already using:
 
 ```text
 Install github.com/LoveOrange/Shiki in this project as shiki/, initialize Shiki,
@@ -32,10 +39,20 @@ Manual commands below assume Shiki is mounted as `shiki/` in the consumer
 project.
 
 ```bash
+shiki adapter install --tool all
 python3 shiki/tools-skills/scripts/install_agent_adapter.py --tool all
 ```
 
 Use a single target to install one adapter:
+
+```bash
+shiki adapter install --tool codex
+shiki adapter install --tool claude
+shiki adapter install --tool gemini
+shiki adapter install --tool opencode
+```
+
+Equivalent low-level calls when the CLI is unavailable:
 
 ```bash
 python3 shiki/tools-skills/scripts/install_agent_adapter.py --tool codex
@@ -97,6 +114,9 @@ review pass. Merge remains root-controlled by default.
 The prompt blocks below are fallback entries for agents without an installed
 adapter or for manually inspecting adapter behavior.
 
+Agents that are installing, repairing, or updating Shiki should first read
+`docs/AGENT_README.md`.
+
 ## 1. scan
 
 Run repository discovery and build the initial Shiki baseline.
@@ -124,7 +144,7 @@ Steps:
 Create a feature workspace.
 
 ```bash
-python shiki/tools-skills/scripts/new_feature.py --taskid <TASKID>
+shiki new-feature --taskid <TASKID>
 ```
 
 Then fill in `shiki_context/features/<TASKID>/design_brief.md`.

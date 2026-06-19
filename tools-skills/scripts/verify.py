@@ -166,7 +166,7 @@ def require_workspace_ignore_policy(path: Path) -> None:
 
 def python_scripts() -> list[str]:
     files = []
-    for base in [ROOT / "core-kernel" / "_lib", ROOT / "tools-skills" / "scripts"]:
+    for base in [ROOT / "core-kernel" / "_lib", ROOT / "tools-skills" / "scripts", ROOT / "shiki_cli"]:
         for path in sorted(base.rglob("*.py")):
             if "__pycache__" in path.parts:
                 continue
@@ -213,7 +213,10 @@ def verify_static_text() -> None:
 def verify_core_consistency() -> None:
     log("checking core file consistency")
     root_readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    pyproject = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
+    cli_entry = (ROOT / "shiki_cli" / "cli.py").read_text(encoding="utf-8")
     cheatsheet = (ROOT / "docs" / "CHEATSHEET.md").read_text(encoding="utf-8")
+    agent_readme = (ROOT / "docs" / "AGENT_README.md").read_text(encoding="utf-8")
     flow_tests = (ROOT / "tests" / "SHIKI_FLOW_TESTS.md").read_text(encoding="utf-8")
     phase_contract = (ROOT / "core-kernel/runtime/phase_contract.md").read_text(encoding="utf-8")
     context_loading = (ROOT / "core-kernel/runtime/context_loading.md").read_text(encoding="utf-8")
@@ -311,8 +314,35 @@ def verify_core_consistency() -> None:
         if needle not in execution_session + runner_next + runner_batch + feature_plan_template:
             raise AssertionError(f"Missing adaptive execution-session guidance: {needle}")
 
+    for needle in [
+        'name = "shiki-workflow"',
+        'shiki = "shiki_cli.cli:main"',
+        "requires-python",
+    ]:
+        if needle not in pyproject:
+            raise AssertionError(f"pyproject.toml missing CLI packaging metadata: {needle}")
+    for needle in [
+        "DEFAULT_SOURCE",
+        "https://github.com/LoveOrange/Shiki.git",
+        "install",
+        "new-feature",
+        "adapter",
+        "tools-skills/scripts/init.py",
+        "tools-skills/scripts/install_agent_adapter.py",
+        "tools-skills/scripts/new_feature.py",
+    ]:
+        if needle not in cli_entry:
+            raise AssertionError(f"shiki_cli/cli.py missing command dispatch content: {needle}")
+
     docs_text = root_readme + cheatsheet + flow_tests
     for needle in [
+        "docs/AGENT_README.md",
+        "python3 -m pip install --user git+https://github.com/LoveOrange/Shiki.git",
+        "shiki install --tool codex",
+        "shiki adapter install --tool all",
+        "shiki adapter install --tool codex",
+        "shiki new-feature --taskid",
+        "shiki-workflow",
         "install_agent_adapter.py --tool all",
         "install_agent_adapter.py --tool codex",
         "install_agent_adapter.py --tool claude",
@@ -340,11 +370,24 @@ def verify_core_consistency() -> None:
         "HIT-016 Tool-Native Command Invocation Happy Paths",
         "HIT-017 Adaptive Coordinator Session",
         "HIT-018 Plan State And Review Gate",
+        "HIT-019 Pip CLI Install",
         "Command invocation after install",
         "/commands reload",
     ]:
         if needle not in docs_text:
             raise AssertionError(f"adapter workflow docs missing expected content: {needle}")
+    for needle in [
+        "Shiki Agent README",
+        "Prefer the `shiki` CLI",
+        "shiki install --tool codex",
+        "shiki adapter install --tool codex",
+        "python3 shiki/tools-skills/scripts/install_agent_adapter.py --tool codex",
+        "Do not commit, push, or change install style unless the user explicitly asks.",
+        "/shiki-next",
+        "/commands reload",
+    ]:
+        if needle not in agent_readme:
+            raise AssertionError(f"docs/AGENT_README.md missing expected content: {needle}")
 
     # Check the tool-native adapter contract covers the Phase 1 command surface
     for needle in [
@@ -570,6 +613,88 @@ def write_devagent_shim(bin_dir: Path) -> None:
     shim.chmod(shim.stat().st_mode | stat.S_IXUSR)
 
 
+def verify_cli_install(tmp: Path, env: dict[str, str]) -> None:
+    log("checking pip-style shiki CLI install path")
+    project = tmp / "cli-project"
+    shutil.copytree(ROOT / "tests" / "fixtures" / "java-ddd-spring-sample", project)
+
+    cli_install = subprocess.check_output(
+        [
+            sys.executable,
+            "-m",
+            "shiki_cli.cli",
+            "install",
+            "--project-root",
+            str(project),
+            "--source",
+            str(ROOT),
+            "--mode",
+            "copy",
+            "--tool",
+            "codex",
+        ],
+        cwd=str(ROOT),
+        env=env,
+        text=True,
+    )
+    for needle in ["Shiki root ready:", "Shiki Initialized", "Shiki Adapter Install"]:
+        if needle not in cli_install:
+            raise AssertionError(f"CLI install output missing: {needle}")
+    for relative in [
+        "shiki/README.md",
+        "shiki/core-kernel/runtime/context_loading.md",
+        "shiki_context/project/README.md",
+        ".codex/prompts/shiki-next.md",
+        ".codex/skills/shiki/SKILL.md",
+    ]:
+        require_file(project / relative)
+
+    dry_run = subprocess.check_output(
+        [
+            sys.executable,
+            "-m",
+            "shiki_cli.cli",
+            "adapter",
+            "install",
+            "--project-root",
+            str(project),
+            "--tool",
+            "codex",
+            "--dry-run",
+        ],
+        cwd=str(ROOT),
+        env=env,
+        text=True,
+    )
+    if "Result: plan only" not in dry_run:
+        raise AssertionError("CLI adapter dry-run must not write files")
+
+    feature = subprocess.check_output(
+        [
+            sys.executable,
+            "-m",
+            "shiki_cli.cli",
+            "new-feature",
+            "--project-root",
+            str(project),
+            "--taskid",
+            "CLI-001",
+        ],
+        cwd=str(ROOT),
+        env=env,
+        text=True,
+    )
+    if "Feature Created" not in feature:
+        raise AssertionError("CLI new-feature must dispatch to the Shiki feature helper")
+    for relative in [
+        "shiki_context/features/CLI-001/design_brief.md",
+        "shiki_context/features/CLI-001/_plan.md",
+        "shiki_context/features/CLI-001/index.md",
+        "shiki_context/features/CLI-001/tests/test_cases.md",
+    ]:
+        require_file(project / relative)
+
+
 def verify_fixture_workflow() -> None:
     log("checking fixture workflow with devagent shim")
     with tempfile.TemporaryDirectory() as raw_tmp:
@@ -582,6 +707,8 @@ def verify_fixture_workflow() -> None:
         write_devagent_shim(shim_bin)
         env = os.environ.copy()
         env["PATH"] = f"{shim_bin}{os.pathsep}{env.get('PATH', '')}"
+
+        verify_cli_install(tmp, env)
 
         run([sys.executable, "shiki/tools-skills/scripts/init.py"], cwd=project, env=env)
         for relative in EXPECTED_CONTEXT_DIRS:

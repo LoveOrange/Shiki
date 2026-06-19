@@ -41,8 +41,19 @@ commands.
 
 ## Quick Start
 
-Recommended for Code Agent users: ask the coding tool you are already using to
-install Shiki into the current project.
+Install the `shiki` CLI first, then install Shiki into the consumer project:
+
+```bash
+python3 -m pip install --user git+https://github.com/LoveOrange/Shiki.git
+shiki install --tool codex
+```
+
+Use `--tool all` to install every supported adapter. `shiki install` mounts the
+framework into `shiki/`, initializes `shiki_context/`, and writes the
+project-local command files for the selected coding tool.
+
+For Code Agent users, the equivalent natural-language path is to ask the coding
+tool you are already using:
 
 ```text
 Install github.com/LoveOrange/Shiki in this project as shiki/, initialize Shiki,
@@ -63,6 +74,7 @@ directly only when you are installing manually or auditing what the agent did.
 ```bash
 git submodule add https://github.com/LoveOrange/Shiki.git shiki
 python3 shiki/tools-skills/scripts/init.py
+python3 shiki/tools-skills/scripts/install_agent_adapter.py --tool codex
 ```
 
 Initialization creates:
@@ -105,19 +117,32 @@ python3 shiki/tools-skills/scripts/install_agent_adapter.py --tool codex
 Create a feature workspace:
 
 ```bash
-python3 shiki/tools-skills/scripts/new_feature.py --taskid FEAT-001
+shiki new-feature --taskid FEAT-001
 ```
 
 Then install project-local tool-native adapters and use the canonical Shiki slash
 commands directly:
 
 ```bash
-python3 shiki/tools-skills/scripts/install_agent_adapter.py --tool all
+shiki adapter install --tool all
 ```
 
 Use a single tool target when needed:
 
 ```bash
+shiki adapter install --tool codex
+shiki adapter install --tool claude
+shiki adapter install --tool gemini
+shiki adapter install --tool opencode
+```
+
+The Python scripts remain the stable low-level entry points inside `shiki/` for
+auditing, offline repair, and deterministic regression checks.
+
+Equivalent low-level adapter commands:
+
+```bash
+python3 shiki/tools-skills/scripts/install_agent_adapter.py --tool all
 python3 shiki/tools-skills/scripts/install_agent_adapter.py --tool codex
 python3 shiki/tools-skills/scripts/install_agent_adapter.py --tool claude
 python3 shiki/tools-skills/scripts/install_agent_adapter.py --tool gemini
@@ -168,6 +193,10 @@ routed through `modify`, `review`, or `doctor` when possible.
 
 `docs/CHEATSHEET.md` remains the fallback prompt panel for agents without an
 installed adapter.
+
+`docs/AGENT_README.md` is the procedural guide for coding agents and AI coding
+tools that need to install, repair, update, or operate Shiki inside a consumer
+project.
 
 Publish a human-friendly L0 review site from Shiki L1 specs:
 
