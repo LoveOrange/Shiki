@@ -10,6 +10,9 @@ plan, contract, index, or evidence state is missing.
 | L2 | workflow, template, and selected `shiki_context/constitution/tech_contracts/<stack_name>/` files |
 | Fallback | `core-kernel/runtime/phase_contract.md` only when routing or gates are blocked |
 
+Design tasks also load `core-kernel/runtime/design_contract.md`. That contract
+requires a reuse gate before writing feature overlay design facts.
+
 ## Core Concepts
 
 Small models only need these stable concepts:
@@ -72,6 +75,7 @@ plan.
 - Index files route to leaf specs; they do not carry task state or full design content.
 - User-facing next step must be a top-level prompt; item and contract ids are diagnostics only.
 - Feature targets are feature-root relative; feature overlays are writable, baseline paths are not baseline write targets until merge or explicit maintenance.
+- Design items must complete the Design Contract Reuse Gate before writing overlay facts; each `add` needs brief or upstream evidence plus a reason reuse/extension is not correct.
 - Code/Test default to feature L2 AS-IS specs; explicit `reuse` refs may load baseline leaf snippets, and `code_contract.md` is only an optional implementation slice.
 - Cross-module callers load the callee entrance and model by default; load flow only when side effects matter.
 - Do not load persistence, ACL, component, full prompt docs, full module directories, or full source trees by default.

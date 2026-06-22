@@ -1,0 +1,24 @@
+id: run_and_route
+stage: Test
+goal: Run project tests or verifier and route failures to code, spec, or feature changes.
+inputs:
+- shiki_context/features/{feature}/_plan.md
+- shiki_context/features/{feature}/tests/test_cases.md
+- generated or updated test files from prior test tasks
+references:
+- core-kernel/workflows/test/run_and_route.md
+output:
+  path: plan output_files
+  mode: update
+  template: ""
+checks:
+- test cases exist
+- relevant unit or integration test code tasks have output_files
+- project test command or verifier is identified
+- failures are classified before proposing fixes
+done_condition:
+- project test command or verifier passed and current row records test evidence summary in output_files
+- or failure returns CHANGE_REQUEST/BLOCKED without marking the row completed
+- failure route is classified as test -> code, test -> spec, or test -> feature
+tech_contracts: ["java/ddd-spring"]
+workflow_ref: core-kernel/workflows/test/run_and_route.md

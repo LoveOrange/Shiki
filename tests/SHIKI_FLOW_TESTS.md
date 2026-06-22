@@ -54,6 +54,7 @@ Given model, persistence, ACL, component, entrance, and flow specs
 When Code tasks are selected
 Then required L2 AS-IS leaf specs exist and are routable from the feature index
 And downstream Code/Test items are not marked STALE.
+And each Design leaf spec records `§0 Reuse Decision Gate` before adding new facts.
 
 ## HIT-008 Code Tasks Obey L2 Specs
 
@@ -78,6 +79,7 @@ When feature_merge runs
 Then baseline module specs are updated
 And module index paths remain valid.
 And every merge action traces to Baseline Delta.
+And Merge depends on Test run-and-route evidence when generated test tasks apply.
 
 ## HIT-010 Sync Plans Before Applying
 
@@ -169,3 +171,28 @@ and Codex adapter command files
 And `shiki adapter install --tool codex --dry-run` reports a plan without writing
 And `shiki new-feature --taskid FEAT-001` creates the feature workspace through
 the same low-level Shiki helpers as the direct Python script path.
+
+## HIT-020 Design Reuse Gate
+
+Given a Design task creates or updates a feature overlay spec
+When the task reads its contract and workflow
+Then `core-kernel/runtime/design_contract.md` is loaded
+And the output records `§0 Reuse Decision Gate`
+And every `add` has brief or upstream evidence plus a reason reuse or extension is not correct
+And the model spec uses a domain `classDiagram`, not a database `erDiagram`.
+
+## HIT-021 Test Workflow Gates
+
+Given a feature plan is expanded from a design brief
+When test tasks apply
+Then API cases update `tests/test_cases.md` without loading source code
+And unit cases update `tests/test_cases.md` from target source and direct dependencies
+And test code tasks create or update unit/integration tests from recorded cases
+And run-and-route classifies failures as `test -> code`, `test -> spec`, or `test -> feature`.
+
+## HIT-022 Team Norm Constitution
+
+Given Shiki init runs in a consumer project
+When `shiki_context/` is created
+Then `shiki_context/constitution/team_norm.md` exists as a project-owned collaboration rule file
+And tech contracts remain under `shiki_context/constitution/tech_contracts/`.

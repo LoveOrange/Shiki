@@ -9,6 +9,7 @@ inputs:
 - shiki_context/features/{feature}/modules/{module}/entrances/*.md
 - shiki_context/features/{feature}/modules/{module}/flows/*.md
 references:
+- core-kernel/runtime/design_contract.md
 - core-kernel/workflows/design/code_contract.md
 output:
   path: features/{feature}/code_contract.md
@@ -17,9 +18,12 @@ output:
 checks:
 - all design files exist
 - explicit reuse refs in §0 Baseline Delta are traceable when used
+- Design Contract Reuse Gate completed for implementation-slice scope
+- no new design facts are introduced in code_contract.md
 done_condition:
 - code_contract.md created as an implementation slice with §1-§6 non-empty
 - Source Specs recorded
 - Contract Version set
 - all confirmation checkboxes initialized
+- every implementation fact traces to an upstream L2 spec or explicit reuse ref
 workflow_ref: core-kernel/workflows/design/code_contract.md

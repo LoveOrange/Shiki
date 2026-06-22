@@ -10,6 +10,12 @@ Fill this section only when this file lives under
 | :--- | :--- | :--- | :--- | :--- |
 | `[reuse/add/extend/modify/deprecate]` | `modules/{module}/designs/persistence.md#[section]` / `N/A` | `features/{feature}/modules/{module}/designs/persistence.md#[section]` | change relative to baseline | no-op / add / merge / replace / remove |
 
+### Reuse Decision Gate
+
+| scope_slice | checked_candidates | reuse_decision | add_justification |
+| :--- | :--- | :--- | :--- |
+| `model.md` / `design_brief §...` | baseline/source tables, mappings, indexes, and existing persistence rules checked | `reuse/extend/modify/add/MANUAL_DECISION` with reason | Every `add` names source evidence and why reuse/extension is not correct; use `N/A` when there are no additions. |
+
 ## 1. PO Definitions
 
 | entity | PO class | table | notes |
@@ -29,6 +35,8 @@ Fill this section only when this file lives under
 | `[module]_xxx` | `uk_xxx_id` | `id` | identity lookup |
 
 ## 4. Database ER Diagram
+
+Table-level diagram that complements `model.md §5` domain relationships.
 
 ```mermaid
 erDiagram

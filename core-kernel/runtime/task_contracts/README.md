@@ -27,6 +27,10 @@ Maintenance rules:
 
 These contracts must also stay atomic:
 
+- `test/api_case_spec.yaml` updates API black-box integration cases without reading source code.
+- `test/unit_case_spec.yaml` updates unit cases from target source and direct dependencies.
+- `test/unit_test_code.yaml` and `test/api_integration_test_code.yaml` write test code from recorded cases.
+- `test/run_and_route.yaml` runs the relevant verifier and classifies failures before routing fixes.
 - `sync/plan.yaml` creates only a bounded Code -> Spec sync plan and does not edit specs.
 - `sync/apply_leaf.yaml` syncs exactly one leaf spec.
 - `doctor/plan.yaml` diagnoses read-only by default and creates a repair plan only after confirmation.

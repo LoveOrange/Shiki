@@ -7,15 +7,17 @@
 - `features/{feature}/design_brief.md` entrance section
 - `features/{feature}/modules/{module}/designs/model.md`
 - baseline `modules/{module}/entrances/[entrance].md` when present and read-only
+- `core-kernel/runtime/design_contract.md`
 
 ## Steps
 
 1. Confirm model design exists.
 2. Confirm the brief declares a new or changed exposed entrance; otherwise skip with N/A.
-3. Fill `_entrance_spec_template.md`: Baseline Delta, summary, access, request, response, errors, examples.
-4. For feature overlays, compare baseline entrance when present and mark `reuse/add/extend/modify/deprecate` in `§0 Baseline Delta`.
-5. Use only known methods: GET, POST, PUT, DELETE, TCP, Scheduled Task.
-6. Mark unknown endpoints as TBD instead of inventing domains.
+3. Run the Design Contract Reuse Gate for entrance scope: list checked baseline/source entrances, endpoints, request/response contracts, and error codes.
+4. Fill `_entrance_spec_template.md`: Baseline Delta, Reuse Decision Gate, summary, access, request, response, errors, examples.
+5. For feature overlays, compare baseline entrance when present and mark `reuse/add/extend/modify/deprecate` in `§0 Baseline Delta`.
+6. Use only known methods: GET, POST, PUT, DELETE, TCP, Scheduled Task.
+7. Mark unknown endpoints as TBD instead of inventing domains.
 
 ## Output
 
@@ -27,4 +29,5 @@
 2. Only entrance contract is described.
 3. No invented external domain is present.
 4. Baseline Delta explains changes relative to baseline, or returns `MANUAL_DECISION` when uncertain.
-5. No implementation code is present.
+5. Reuse Decision Gate records checked candidates and add justification.
+6. No implementation code is present.

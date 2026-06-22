@@ -13,6 +13,12 @@ Fill this section only when this file lives under
 | :--- | :--- | :--- | :--- | :--- |
 | `[reuse/add/extend/modify/deprecate]` | `modules/{module}/designs/acl.md#[section]` / `N/A` | `features/{feature}/modules/{module}/designs/acl.md#[section]` | change relative to baseline | no-op / add / merge / replace / remove |
 
+### Reuse Decision Gate
+
+| scope_slice | checked_candidates | reuse_decision | add_justification |
+| :--- | :--- | :--- | :--- |
+| `design_brief §...` / model spec | baseline/source module boundaries, dependencies, supports, and external integrations checked | `reuse/extend/modify/add/MANUAL_DECISION` with reason | Every `add` names source evidence and why reuse/extension is not correct; use `N/A` when there are no additions. |
+
 ## 1. Business Module Scope
 
 - **Module Name**: [ModuleName]

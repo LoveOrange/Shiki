@@ -5,6 +5,7 @@ inputs:
 - shiki_context/features/{feature}/modules/{module}/designs/model.md
 - shiki_context/features/{feature}/design_brief.md
 references:
+- core-kernel/runtime/design_contract.md
 - core-kernel/workflows/design/persistence.md
 output:
   path: features/{feature}/modules/{module}/designs/persistence.md
@@ -13,8 +14,11 @@ output:
 checks:
 - modules/{module}/designs/model.md exists
 - baseline delta table uses only reuse/add/extend/modify/deprecate when generating feature overlay
+- Design Contract Reuse Gate completed before output generation
+- every add has brief/upstream evidence and no reusable baseline/source equivalent
 done_condition:
 - modules/{module}/designs/persistence.md created with table prefix and PO suffix correct
 - §0 Baseline Delta filled or MANUAL_DECISION returned
+- §0 Reuse Decision Gate records checked baseline/source candidates and reuse/extend/add justification
 tech_contracts: ["java/ddd-spring"]
 workflow_ref: core-kernel/workflows/design/persistence.md

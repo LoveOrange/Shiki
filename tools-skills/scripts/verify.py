@@ -40,6 +40,7 @@ EXPECTED_CONTEXT_FILES = [
     "shiki_context/workspace/.gitignore",
     "shiki_context/workspace/active_task.md",
     "shiki_context/workspace/_plan.md",
+    "shiki_context/constitution/team_norm.md",
     "shiki_context/constitution/tech_contracts/README.md",
     "shiki_context/constitution/tech_contracts/java/ddd-spring/acl.md",
     "shiki_context/constitution/tech_contracts/java/ddd-spring/exception.md",
@@ -229,7 +230,9 @@ def verify_core_consistency() -> None:
     runner_next = (ROOT / "core-kernel" / "workflows" / "runner" / "next.md").read_text(encoding="utf-8")
     runner_apply = (ROOT / "core-kernel" / "workflows" / "runner" / "apply.md").read_text(encoding="utf-8")
     runner_batch = (ROOT / "core-kernel" / "workflows" / "runner" / "batch.md").read_text(encoding="utf-8")
+    design_contract = (ROOT / "core-kernel" / "runtime" / "design_contract.md").read_text(encoding="utf-8")
     feature_plan_template = (ROOT / "core-kernel" / "templates" / "feature" / "_plan.md").read_text(encoding="utf-8")
+    test_cases_template = (ROOT / "core-kernel" / "templates" / "feature" / "tests" / "test_cases.md").read_text(encoding="utf-8")
     require_workspace_ignore_policy(ROOT / "core-kernel" / "templates" / "workspace" / ".gitignore")
 
     # Check CHEATSHEET has the active prompt entries
@@ -313,6 +316,22 @@ def verify_core_consistency() -> None:
     ]:
         if needle not in execution_session + runner_next + runner_batch + feature_plan_template:
             raise AssertionError(f"Missing adaptive execution-session guidance: {needle}")
+    for needle in [
+        "Shiki Design Contract",
+        "Reuse Gate",
+        "Reuse Inventory",
+        "Add Justification",
+        "MANUAL_DECISION",
+    ]:
+        if needle not in design_contract:
+            raise AssertionError(f"design_contract.md missing expected content: {needle}")
+    for needle in [
+        "core-kernel/runtime/design_contract.md",
+        "Design Contract Reuse Gate",
+        "Reuse Decision Gate",
+    ]:
+        if needle not in context_loading + phase_contract + feature_plan_template + design_contract:
+            raise AssertionError(f"Missing design reuse gate guidance: {needle}")
 
     for needle in [
         'name = "shiki-workflow"',
@@ -531,7 +550,7 @@ def verify_core_consistency() -> None:
     ]
     for template_path in delta_templates:
         content = template_path.read_text(encoding="utf-8")
-        for needle in ["Baseline Delta", "change_type", "baseline_ref", "overlay_ref", "merge_action", *delta_types]:
+        for needle in ["Baseline Delta", "Reuse Decision Gate", "change_type", "baseline_ref", "overlay_ref", "merge_action", *delta_types]:
             if needle not in content:
                 raise AssertionError(f"{template_path.relative_to(ROOT)} missing baseline delta marker: {needle}")
 
@@ -545,13 +564,47 @@ def verify_core_consistency() -> None:
     ]
     for workflow_path in delta_workflows:
         content = workflow_path.read_text(encoding="utf-8")
-        for needle in ["Baseline Delta", *delta_types, "MANUAL_DECISION"]:
+        for needle in ["Baseline Delta", "Reuse Decision Gate", "Design Contract", *delta_types, "MANUAL_DECISION"]:
             if needle not in content:
                 raise AssertionError(f"{workflow_path.relative_to(ROOT)} missing baseline delta guidance: {needle}")
     merge_workflow = (ROOT / "core-kernel" / "workflows" / "merge" / "feature_merge.md").read_text(encoding="utf-8")
     for needle in ["Baseline Delta", "change_type", *delta_types]:
         if needle not in merge_workflow:
             raise AssertionError(f"feature_merge.md missing baseline delta merge rule: {needle}")
+    model_template = (ROOT / "core-kernel" / "templates" / "module" / "designs" / "_model_template.md").read_text(encoding="utf-8")
+    model_workflow = (ROOT / "core-kernel" / "workflows" / "design" / "model.md").read_text(encoding="utf-8")
+    model_contract = (ROOT / "core-kernel" / "runtime" / "task_contracts" / "design" / "model.yaml").read_text(encoding="utf-8")
+    for needle in ["Domain Relationship Diagram", "classDiagram", "database `erDiagram`", "PK/FK", "DDL"]:
+        if needle not in model_template + model_workflow + model_contract:
+            raise AssertionError(f"model design missing domain relationship guidance: {needle}")
+    test_contracts = [
+        ROOT / "core-kernel" / "runtime" / "task_contracts" / "test" / "api_case_spec.yaml",
+        ROOT / "core-kernel" / "runtime" / "task_contracts" / "test" / "api_integration_test_code.yaml",
+        ROOT / "core-kernel" / "runtime" / "task_contracts" / "test" / "unit_case_spec.yaml",
+        ROOT / "core-kernel" / "runtime" / "task_contracts" / "test" / "unit_test_code.yaml",
+        ROOT / "core-kernel" / "runtime" / "task_contracts" / "test" / "run_and_route.yaml",
+    ]
+    test_workflows = [
+        ROOT / "core-kernel" / "workflows" / "test" / "api_case_spec.md",
+        ROOT / "core-kernel" / "workflows" / "test" / "api_integration_test_code.md",
+        ROOT / "core-kernel" / "workflows" / "test" / "unit_case_spec.md",
+        ROOT / "core-kernel" / "workflows" / "test" / "unit_test_code.md",
+        ROOT / "core-kernel" / "workflows" / "test" / "run_and_route.md",
+    ]
+    for path in [*test_contracts, *test_workflows]:
+        require_file(path)
+    test_text = "\n".join(path.read_text(encoding="utf-8") for path in [*test_contracts, *test_workflows])
+    for needle in [
+        "TC-INT",
+        "TC-UNIT",
+        "Integration Tests",
+        "Unit Tests",
+        "CHANGE_REQUEST: test -> code",
+        "CHANGE_REQUEST: test -> spec",
+        "CHANGE_REQUEST: test -> feature",
+    ]:
+        if needle not in test_text + test_cases_template + feature_plan_template:
+            raise AssertionError(f"test workflow surface missing expected content: {needle}")
 
 
 def copy_shiki_to(project: Path) -> None:
@@ -1270,7 +1323,12 @@ def verify_fixture_workflow() -> None:
         for needle in [
             "| D1 | Design | `modules/order/designs/model.md` | - | `core-kernel/runtime/task_contracts/design/model.yaml` | READY |",
             "| C1 | Code | - | D1,D6 | `core-kernel/runtime/task_contracts/code/entity.yaml` | READY |",
-            "| M1 | Merge | baseline | C5 | `core-kernel/runtime/task_contracts/merge/feature_merge.yaml` | READY |",
+            "| T1 | Design | `tests/test_cases.md` | D5,D6 | `core-kernel/runtime/task_contracts/test/api_case_spec.yaml` | READY |",
+            "| T2 | Test | `tests/test_cases.md` | C1,C2,C3,C4,C5 | `core-kernel/runtime/task_contracts/test/unit_case_spec.yaml` | READY |",
+            "| T3 | Test | - | T2,C1,C2,C3,C4,C5 | `core-kernel/runtime/task_contracts/test/unit_test_code.yaml` | READY |",
+            "| T4 | Test | - | T1,C5 | `core-kernel/runtime/task_contracts/test/api_integration_test_code.yaml` | READY |",
+            "| T5 | Test | test evidence | T3,T4 | `core-kernel/runtime/task_contracts/test/run_and_route.yaml` | READY |",
+            "| M1 | Merge | baseline | T5 | `core-kernel/runtime/task_contracts/merge/feature_merge.yaml` | READY |",
         ]:
             if needle not in plan_text:
                 raise AssertionError(f"expanded plan missing row: {needle}")

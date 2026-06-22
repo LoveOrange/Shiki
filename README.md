@@ -37,6 +37,10 @@ commands.
 - Tech contracts: language and architecture rules are replaceable stacks such as `java/ddd-spring`.
 - Review gates: task output is not complete until execution, verification,
   review, evidence, and plan state all pass.
+- Design reuse gate: design tasks must check reusable baseline/source facts
+  before adding new concepts, flows, fields, services, or error codes.
+- Test workflow: feature plans can route API cases, unit cases, test code, and
+  run-and-route evidence before Merge.
 - Minimal context: normal tasks load only plan state, direct dependencies, workflow, templates, and selected tech rules.
 
 ## Quick Start
@@ -84,6 +88,7 @@ shiki.config.yaml
 shiki_context/
   workspace/
   constitution/tech_contracts/
+  constitution/team_norm.md
   project/
   modules/
   features/

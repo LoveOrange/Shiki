@@ -1,0 +1,27 @@
+id: unit_case_spec
+stage: Test
+goal: Generate unit test cases from code contract, target source, and direct dependencies.
+inputs:
+- shiki_context/features/{feature}/_plan.md
+- shiki_context/features/{feature}/tests/test_cases.md
+- shiki_context/features/{feature}/code_contract.md (optional)
+- target source files from current Code item output_files
+- direct dependency source files or interfaces
+references:
+- core-kernel/workflows/test/unit_case_spec.md
+- core-kernel/templates/feature/tests/test_cases.md
+output:
+  path: features/{feature}/tests/test_cases.md
+  mode: update
+  template: core-kernel/templates/feature/tests/test_cases.md
+checks:
+- target source files or code contract are available
+- direct dependencies are limited to unit boundaries
+- cases are written under Unit Tests as Markdown hierarchy
+- each case records class, method, description, input, and expected result
+done_condition:
+- tests/test_cases.md contains Unit Tests cases for key branches, bad cases, and edge cases in the target code
+- unit cases identify mock behavior inside Input or Expected when third-party dependencies are involved
+- test spec does not record execution logs, screenshots, or one-time test results
+tech_contracts: ["java/ddd-spring"]
+workflow_ref: core-kernel/workflows/test/unit_case_spec.md

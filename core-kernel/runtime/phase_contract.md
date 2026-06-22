@@ -41,6 +41,9 @@ Gate to Code:
 
 - Required L2 leaf specs for the current Code item exist.
 - Feature `index.md` can route to those leaf specs.
+- Design Contract Reuse Gate is complete: every new concept, field, flow,
+  entrance, service, state, or error code has source evidence and a reason it
+  cannot reuse or extend an existing fact.
 - Downstream Code/Test items are not marked `STALE`.
 - Design phase review has passed or the coordinator stopped for human review.
 
@@ -74,9 +77,11 @@ Goal: verify implementation, tests, specs, and business expectations.
 
 Exit gate:
 
-- relevant test command or manual verification passed
-- no unresolved CHANGE_REQUEST remains
-- code/spec drift has been checked
+- Integration and unit cases are recorded in `features/{feature}/tests/test_cases.md` when applicable.
+- Automated test code exists for selected `TC-INT-*` and `TC-UNIT-*` cases when the project supports it.
+- Relevant test command or manual verification passed.
+- No unresolved `CHANGE_REQUEST` remains.
+- Code/spec drift has been checked.
 
 ## Phase 5: Merge
 

@@ -145,8 +145,22 @@ def copy_templates(template_dir, target_dir, force=False):
                     created.append(str(dst))
 
     # Create collection roots used by the target context-store layout.
+    (target_dir / "constitution").mkdir(parents=True, exist_ok=True)
     (target_dir / "modules").mkdir(parents=True, exist_ok=True)
     (target_dir / "features").mkdir(parents=True, exist_ok=True)
+
+    # Copy project-owned constitution templates.
+    constitution_src = template_dir / "constitution"
+    constitution_dst = target_dir / "constitution"
+    if constitution_src.exists():
+        for f in constitution_src.iterdir():
+            if f.is_file():
+                dst = constitution_dst / f.name
+                if dst.exists() and not force:
+                    skipped.append(str(dst))
+                else:
+                    shutil.copy2(str(f), str(dst))
+                    created.append(str(dst))
 
     # Copy workspace templates into workspace/.
     workspace_src = template_dir / "workspace"

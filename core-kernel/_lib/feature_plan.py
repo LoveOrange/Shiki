@@ -18,6 +18,11 @@ CODE_INTERFACE_CONTRACT = "core-kernel/runtime/task_contracts/code/interface_ske
 CODE_FEATURE_CONTRACT = "core-kernel/runtime/task_contracts/code/feature_logic.yaml"
 CODE_INFRA_CONTRACT = "core-kernel/runtime/task_contracts/code/infrastructure.yaml"
 CODE_ADAPTER_CONTRACT = "core-kernel/runtime/task_contracts/code/adapter.yaml"
+TEST_API_CASE_CONTRACT = "core-kernel/runtime/task_contracts/test/api_case_spec.yaml"
+TEST_UNIT_CASE_CONTRACT = "core-kernel/runtime/task_contracts/test/unit_case_spec.yaml"
+TEST_UNIT_CODE_CONTRACT = "core-kernel/runtime/task_contracts/test/unit_test_code.yaml"
+TEST_API_CODE_CONTRACT = "core-kernel/runtime/task_contracts/test/api_integration_test_code.yaml"
+TEST_RUN_CONTRACT = "core-kernel/runtime/task_contracts/test/run_and_route.yaml"
 MERGE_CONTRACT = "core-kernel/runtime/task_contracts/merge/feature_merge.yaml"
 
 
@@ -120,6 +125,8 @@ def render_feature_index(feature_id, items):
             continue
         if _contract_matches(item, "design/design_init.yaml") or _contract_matches(item, "design/code_contract.yaml"):
             continue
+        if target == "tests/test_cases.md":
+            continue
         if target in {"", "-", "baseline", "module baseline"}:
             continue
         spec_id = target.rsplit(".", 1)[0].replace("/", ".")
@@ -217,6 +224,7 @@ def render_full_plan(feature_id, base_module, created_on, has_entrance, needs_ac
     rows.append(["D4", "Design", component_target, component_depends, f"`{COMPONENT_CONTRACT}`", "READY", "", "", ""])
     if has_entrance:
         rows.append(["D5", "Design", entrance_target, "D1", f"`{ENTRANCE_SPEC_CONTRACT}`", "READY", "", "", ""])
+        rows.append(["T1", "Design", "`tests/test_cases.md`", "D5,D6", f"`{TEST_API_CASE_CONTRACT}`", "READY", "", "", ""])
         adapter_depends = "C2,D4,D5"
     else:
         adapter_depends = "C2,D4"
@@ -228,7 +236,19 @@ def render_full_plan(feature_id, base_module, created_on, has_entrance, needs_ac
             ["C3", "Code", "-", feature_logic_depends, f"`{CODE_FEATURE_CONTRACT}`", "READY", "", "", ""],
             ["C4", "Code", "-", infrastructure_depends, f"`{CODE_INFRA_CONTRACT}`", "READY", "", "", ""],
             ["C5", "Code", "-", adapter_depends, f"`{CODE_ADAPTER_CONTRACT}`", "READY", "", "", ""],
-            ["M1", "Merge", "baseline", "C5", f"`{MERGE_CONTRACT}`", "READY", "", "", ""],
+            ["T2", "Test", "`tests/test_cases.md`", "C1,C2,C3,C4,C5", f"`{TEST_UNIT_CASE_CONTRACT}`", "READY", "", "", ""],
+            ["T3", "Test", "-", "T2,C1,C2,C3,C4,C5", f"`{TEST_UNIT_CODE_CONTRACT}`", "READY", "", "", ""],
+        ]
+    )
+    if has_entrance:
+        rows.append(["T4", "Test", "-", "T1,C5", f"`{TEST_API_CODE_CONTRACT}`", "READY", "", "", ""])
+        run_depends = "T3,T4"
+    else:
+        run_depends = "T3"
+    rows.extend(
+        [
+            ["T5", "Test", "test evidence", run_depends, f"`{TEST_RUN_CONTRACT}`", "READY", "", "", ""],
+            ["M1", "Merge", "baseline", "T5", f"`{MERGE_CONTRACT}`", "READY", "", "", ""],
         ]
     )
 
@@ -257,6 +277,7 @@ def render_full_plan(feature_id, base_module, created_on, has_entrance, needs_ac
             "",
             "> `contract` points to YAML files under `core-kernel/runtime/task_contracts/`.",
             "> Delete rows that do not apply to the feature.",
+            "> If a feature has no entrance/API, omit API case and API integration test rows.",
         ]
     )
 

@@ -1,0 +1,29 @@
+id: api_case_spec
+stage: Design
+goal: Generate API black-box integration test cases from current entrance and L2 specs.
+inputs:
+- shiki_context/features/{feature}/_plan.md
+- shiki_context/features/{feature}/tests/test_cases.md
+- shiki_context/features/{feature}/modules/{module}/entrances/*.md
+- shiki_context/features/{feature}/modules/{module}/flows/*.md
+- shiki_context/features/{feature}/modules/{module}/designs/model.md
+- shiki_context/features/{feature}/modules/{module}/designs/acl.md (optional)
+references:
+- core-kernel/workflows/test/api_case_spec.md
+- core-kernel/templates/feature/tests/test_cases.md
+output:
+  path: features/{feature}/tests/test_cases.md
+  mode: update
+  template: core-kernel/templates/feature/tests/test_cases.md
+checks:
+- entrance/API spec exists
+- flow spec exists
+- source code is not loaded for API case design
+- cases are written under Integration Tests as Markdown hierarchy
+- each case records scenario name, API, method, description, request, expected response, and Gherkin Given/When/Then
+done_condition:
+- tests/test_cases.md contains Integration Tests cases for P0 happy, bad, and edge API behavior
+- every integration case links to entrance/API or L2 spec coverage
+- test spec does not record execution logs, screenshots, or one-time test results
+tech_contracts: ["java/ddd-spring"]
+workflow_ref: core-kernel/workflows/test/api_case_spec.md

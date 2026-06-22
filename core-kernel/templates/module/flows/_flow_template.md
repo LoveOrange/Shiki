@@ -12,6 +12,12 @@ Fill this section only when this file lives under
 | :--- | :--- | :--- | :--- | :--- |
 | `[reuse/add/extend/modify/deprecate]` | `modules/{module}/flows/[scenario].md#[section]` / `N/A` | `features/{feature}/modules/{module}/flows/[scenario].md#[section]` | change relative to baseline | no-op / add / merge / replace / remove |
 
+### Reuse Decision Gate
+
+| scope_slice | checked_candidates | reuse_decision | add_justification |
+| :--- | :--- | :--- | :--- |
+| scenario / entrance / model scope | baseline/source flows, participants, branches, error paths, and robustness rules checked | `reuse/extend/modify/add/MANUAL_DECISION` with reason | Every `add` names source evidence and why reuse/extension is not correct; use `N/A` when there are no additions. |
+
 ## 1. Approval Checklist
 
 | check | result | note |
