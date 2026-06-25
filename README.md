@@ -25,16 +25,28 @@ performs bounded plan items against contracts inside an adaptive execution
 session. Strong tools can use workers internally; users still invoke the same
 commands.
 
+Shiki sits above provider-local loops. Codex, Claude Code, OpenCode, Gemini, or
+future providers can still read, edit, test, and fix inside a bounded
+assignment. Shiki owns the project and phase loop: which item is next, which
+files are loaded, which gates must pass, what evidence is accepted, and where
+the durable state is written.
+
 ## Core Ideas
 
 - Workflow-driven execution: each task is routed from `_plan.md` to a task contract and a workflow.
+- Provider-backed execution: providers execute bounded assignments; Shiki Core
+  owns routing, gates, evidence, and resumable state.
 - Adaptive execution sessions: `/shiki-next` automatically chooses a
   single-agent or agent-team topology from adapter metadata, task graph, context
   budget, and stop conditions.
 - File-backed state: briefs, specs, plans, tech rules, and outputs live in versioned files.
 - Current valid specs: the active leaf specs in scope are the source of truth.
 - L2 AS-IS specs: code follows current leaf specs directly; `code_contract.md` is only an optional implementation slice.
-- Tech contracts: language and architecture rules are replaceable stacks such as `java/ddd-spring`.
+- Project skeleton specs: specs are both model-facing context and a
+  human-readable architecture map for technical users.
+- Tech contracts: language and architecture rules are replaceable stacks. The
+  default reference stack is DDD-oriented, such as `java/ddd-spring`, but DDD is
+  not hard-coded into the kernel.
 - Review gates: task output is not complete until execution, verification,
   review, evidence, and plan state all pass.
 - Design reuse gate: design tasks must check reusable baseline/source facts
@@ -42,6 +54,10 @@ commands.
 - Test workflow: feature plans can route API cases, unit cases, test code, and
   run-and-route evidence before Merge.
 - Minimal context: normal tasks load only plan state, direct dependencies, workflow, templates, and selected tech rules.
+
+See `docs/PHILOSOPHY.md` for the design philosophy behind Shiki's provider
+boundary, DDD default stack, task granularity model, and future phase
+orchestrators.
 
 ## Quick Start
 
@@ -233,7 +249,7 @@ Users should change those copies instead of editing the read-only framework defa
 ## Repository Shape
 
 ```text
-docs/                blueprint and prompt cheatsheet
+docs/                philosophy, blueprint, agent guide, and prompt cheatsheet
 user-interface/       user entry surfaces
 core-kernel/          runtime rules, task contracts, workflows, templates, helpers
 tools-skills/         scripts and reusable skills

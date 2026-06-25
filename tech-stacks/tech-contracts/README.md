@@ -4,6 +4,11 @@
 `shiki/tech-stacks/tech-contracts/`; init copies selected stacks into
 `shiki_context/constitution/tech_contracts/` for project ownership.
 
+DDD is the default reference architecture because it gives agents
+business-aligned boundaries and a stable vocabulary for product-to-code
+traceability. It is not a Core Kernel assumption. Projects can replace the
+architecture style by selecting or authoring another tech contract stack.
+
 ## Loading Rules
 
 | stack id | project copy | purpose |
