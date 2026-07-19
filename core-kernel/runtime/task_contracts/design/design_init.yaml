@@ -1,24 +1,18 @@
+kind: canonical
 id: design_init
 stage: Design
-goal: Analyze Design Brief, expand bootstrap plan, and align feature/module indexes.
+goal: Initialize one feature design task ledger from the current Design Brief.
 inputs:
-- shiki_context/features/{feature}/design_brief.md
-- shiki_context/features/{feature}/_plan.md
-- shiki_context/features/{feature}/index.md
-references:
-- core-kernel/runtime/design_contract.md
-- core-kernel/workflows/design/design_init.md
+- path: shiki_context/features/{feature}/design_brief.md
+  required: true
+- path: shiki_context/features/{feature}/_plan.md
+  required: true
+- path: shiki_context/features/{feature}/index.md
+  required: true
+- path: shiki_context/project/index.md
+  required: false
+- path: shiki_context/modules/*/index.md
+  required: false
 output:
   path: features/{feature}/_plan.md
-  mode: update
-  template: core-kernel/templates/feature/_plan.md
-checks:
-- design_brief exists
-- Design Contract Reuse Gate applied to plan expansion scope
-done_condition:
-- feature _plan.md expanded with full Target Outputs table
-- feature index.md matches generated spec targets
-- generated spec targets are feature-root relative and do not point to shiki_context/modules/**
-- feature index.md tells Design leaf specs to fill §0 Baseline Delta
-- expanded plan includes only affected items, or records MANUAL_DECISION when scope cannot be bounded
 workflow_ref: core-kernel/workflows/design/design_init.md

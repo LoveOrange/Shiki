@@ -2,13 +2,6 @@
 
 > Role: Architect. Produce persistence design only.
 
-## Load
-
-- `features/{feature}/modules/{module}/designs/model.md`
-- `features/{feature}/design_brief.md` capacity notes
-- baseline `modules/{module}/designs/persistence.md` when present and read-only
-- `core-kernel/runtime/design_contract.md`
-- tech contracts: naming and persistence
 
 ## Steps
 

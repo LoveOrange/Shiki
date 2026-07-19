@@ -1,10 +1,10 @@
 # Active Task
 
-Developer-local focus for the current session. Do not treat this as shared team
-truth; it only helps a new agent session find the current scope quickly.
+Developer-local focus. It helps a new session locate the current scope; it is not completion truth.
 
-- `stage`: [Init/Requirement/Design/Code/Test/Merge]
+- `stage`: [Init/Design/Code/Test/Merge]
 - `module`: [module name]
 - `feature`: [FEAT-xxx | -]
+- `next`: auto
 - `memo`: [current focus]
 - `decisions`: [optional decision notes]

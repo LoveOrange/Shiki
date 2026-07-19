@@ -3,14 +3,6 @@
 > Role: Test Designer. Write unit test cases from code contract, target source,
 > and direct dependencies.
 
-## Load
-
-- `features/{feature}/_plan.md`
-- `features/{feature}/tests/test_cases.md`
-- `features/{feature}/code_contract.md` when present
-- target source files from current Code item `output_files`
-- direct dependency interfaces or classes
-- tech contract: test framework and mock conventions
 
 ## Steps
 

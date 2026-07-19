@@ -1,32 +1,14 @@
+kind: canonical
 id: doctor_plan
 stage: Init
-goal: Diagnose Context Store maintenance issues and create a bounded repair plan after confirmation.
+goal: Create one bounded repair plan for the selected Shiki Context maintenance scope.
 inputs:
-- shiki_context/workspace/active_task.md
-- current scope _plan.md when present
-- shiki_context/project/index.md
-- necessary module or feature index.md files
-- .shiki/adapters/*/manifest.json when present
-- user selected doctor mode and confirmation
-references:
-- core-kernel/runtime/context_loading.md
-- core-kernel/workflows/doctor/plan.md
+- path: shiki_context/workspace/active_task.md
+  required: true
+- path: shiki_context/features/{feature}/_plan.md
+  required: false
+- path: shiki_context/project/index.md
+  required: false
 output:
   path: workspace/doctor_plan.md
-  mode: create_or_update
-  template: ""
-checks:
-- read-only diagnosis is completed before any repair plan is written
-- destructive or ambiguous changes are excluded from executable rows
-- adapter manifests and command files are checked against the current adapter contract when present
-- plan schema is checked for status, output_files, evidence, and review_result columns
-evidence_rules:
-- write MANUAL_DECISION for uncertain migration or recovery mapping
-- do not modify business spec bodies during planning
-retry_policy:
-  max_attempts: 1
-done_condition:
-- unconfirmed runs output a diagnosis without file changes
-- confirmed runs create workspace/doctor_plan.md with bounded rows routed to doctor/apply_item.yaml or MANUAL_DECISION items
-- diagnosis reports adapter contract, context interface, plan schema, and spec/index health
 workflow_ref: core-kernel/workflows/doctor/plan.md

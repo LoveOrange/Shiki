@@ -1,0 +1,3 @@
+kind: alias
+id: sync_modules
+canonical: init/sync_project_artifact.yaml

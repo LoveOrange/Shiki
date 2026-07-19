@@ -1,21 +1,12 @@
+kind: canonical
 id: adapter
 stage: Code
-goal: Implement controller, listener and job adapters from current L2 AS-IS specs.
+goal: Implement controller, listener and job adapters from current L2 specs.
 inputs:
-- shiki_context/features/{feature}/_plan.md
-- shiki_context/features/{feature}/modules/{module}/designs/component.md
-- shiki_context/features/{feature}/modules/{module}/entrances/*.md
-- shiki_context/features/{feature}/modules/{module}/flows/*.md (optional)
-references:
-- core-kernel/workflows/code/adapter.md
-output:
-  path: plan output_files
-  mode: update
-  template: ""
-checks:
-- required L2 specs exist
-- spec-code alignment check completed before editing
-done_condition:
-- adapter code generated and registered in _plan.md output_files
-tech_contracts: ["java/ddd-spring"]
+- path: shiki_context/features/{feature}/_plan.md
+  required: true
+- path: shiki_context/features/{feature}/modules/{module}/designs/component.md
+  required: true
+- path: shiki_context/features/{feature}/modules/{module}/entrances/*.md
+  required: false
 workflow_ref: core-kernel/workflows/code/adapter.md

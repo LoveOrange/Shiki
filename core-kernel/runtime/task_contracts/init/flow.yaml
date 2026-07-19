@@ -1,0 +1,14 @@
+kind: canonical
+id: flow
+stage: Init
+goal: Generate or update one baseline scenario flow spec with its core sequence diagram.
+inputs:
+- path: shiki_context/workspace/_plan.md
+  required: true
+- path: shiki_context/modules/{module}/entrances/*.md
+  required: true
+- path: shiki_context/modules/{module}/index.md
+  required: false
+output:
+  path: '{target}'
+workflow_ref: core-kernel/workflows/init/flow.md

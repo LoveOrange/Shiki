@@ -2,15 +2,6 @@
 
 > Role: Coder. Implement persistence and ACL infrastructure from current L2 AS-IS specs only.
 
-## Load
-
-- `features/{feature}/_plan.md`
-- `features/{feature}/index.md`
-- `features/{feature}/modules/{module}/designs/model.md`
-- `features/{feature}/modules/{module}/designs/persistence.md`
-- `features/{feature}/modules/{module}/designs/acl.md` when present
-- target source and direct dependencies
-- tech contracts: persistence, ACL, and exception
 
 ## Steps
 

@@ -2,13 +2,6 @@
 
 > Role: Reviewer. Merge accepted feature overlay specs into baseline after verification.
 
-## Load
-
-- `features/{feature}/_plan.md`
-- `features/{feature}/index.md`
-- `features/{feature}/modules/{module}/...`
-- `features/{feature}/tests/test_cases.md` when present
-- `shiki_context/modules/{module}/index.md`
 
 ## Steps
 

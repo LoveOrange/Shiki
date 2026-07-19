@@ -3,14 +3,6 @@
 > Role: Coder. Write or update API integration test code from Integration Tests
 > cases.
 
-## Load
-
-- `features/{feature}/_plan.md`
-- `features/{feature}/tests/test_cases.md`
-- `features/{feature}/modules/{module}/entrances/*.md`
-- adapter/API entry source files
-- existing integration test directories and bootstrapping conventions
-- tech contract: test framework and integration test conventions
 
 ## Steps
 

@@ -1,30 +1,20 @@
+kind: canonical
 id: flow
 stage: Design
-goal: Generate scenario flow design.
+goal: Generate one scenario flow design with its core sequence diagram.
 inputs:
-- shiki_context/features/{feature}/modules/{module}/designs/model.md
-- shiki_context/features/{feature}/modules/{module}/designs/persistence.md
-- shiki_context/features/{feature}/modules/{module}/designs/acl.md
-- shiki_context/features/{feature}/modules/{module}/designs/component.md
-- shiki_context/features/{feature}/design_brief.md
-references:
-- core-kernel/runtime/design_contract.md
-- core-kernel/workflows/design/flow.md
+- path: shiki_context/features/{feature}/modules/{module}/designs/model.md
+  required: true
+- path: shiki_context/features/{feature}/modules/{module}/designs/persistence.md
+  required: true
+- path: shiki_context/features/{feature}/modules/{module}/designs/acl.md
+  required: false
+- path: shiki_context/features/{feature}/modules/{module}/designs/component.md
+  required: true
+- path: shiki_context/features/{feature}/design_brief.md
+  required: true
+- path: shiki_context/modules/{module}/flows/*.md
+  required: false
 output:
-  path: features/{feature}/modules/{module}/flows/{scenario}.md
-  mode: create
-  template: core-kernel/templates/module/flows/_flow_template.md
-checks:
-- modules/{module}/designs/model.md exists
-- modules/{module}/designs/persistence.md exists
-- modules/{module}/designs/acl.md exists
-- modules/{module}/designs/component.md exists
-- baseline delta table uses only reuse/add/extend/modify/deprecate when generating feature overlay
-- Design Contract Reuse Gate completed before output generation
-- every add has brief/upstream evidence and no reusable baseline/source equivalent
-done_condition:
-- flow created with participants matching component
-- §0 Baseline Delta filled or MANUAL_DECISION returned
-- §0 Reuse Decision Gate records checked baseline/source candidates and reuse/extend/add justification
-tech_contracts: ["java/ddd-spring"]
+  path: '{target}'
 workflow_ref: core-kernel/workflows/design/flow.md

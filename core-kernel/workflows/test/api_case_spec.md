@@ -3,15 +3,6 @@
 > Role: Test Designer. Write API-level black-box integration cases from the
 > entrance/API spec and L2 specs. Do not load source code.
 
-## Load
-
-- `features/{feature}/_plan.md`
-- `features/{feature}/tests/test_cases.md`
-- `features/{feature}/modules/{module}/entrances/*.md`
-- `features/{feature}/modules/{module}/flows/*.md`
-- `features/{feature}/modules/{module}/designs/model.md`
-- `features/{feature}/modules/{module}/designs/acl.md` when present
-- `core-kernel/templates/feature/tests/test_cases.md`
 
 ## Steps
 

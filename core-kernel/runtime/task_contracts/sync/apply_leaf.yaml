@@ -1,33 +1,10 @@
+kind: canonical
 id: sync_apply_leaf
 stage: Code
 goal: Apply one bounded Code-to-Spec sync item to a single target leaf spec.
 inputs:
-- shiki_context/workspace/sync_plan.md
-- current row whose contract points to sync/apply_leaf.yaml
-- source files listed by the current row
-- target leaf spec listed by the current row
-- directly dependent entrance/model/flow specs only when needed
-references:
-- core-kernel/runtime/context_loading.md
-- core-kernel/workflows/sync/apply_leaf.md
+- path: shiki_context/workspace/sync_plan.md
+  required: true
 output:
-  path: target leaf spec from sync_plan.md
-  mode: update
-  template: ""
-checks:
-- current row has contract sync/apply_leaf.yaml
-- target spec exists or is explicitly marked create_or_update by the plan
-- source files exist
-- mapping is not marked MANUAL_DECISION
-evidence_rules:
-- update only facts proven by the listed source files
-- preserve unrelated spec sections
-- write uncertainty as MANUAL_DECISION or BLOCKED, not current valid fact
-- record status, output_files, evidence, and review_result when those columns exist
-retry_policy:
-  max_attempts: 1
-done_condition:
-- target leaf spec is updated only within the planned scope, or the row is blocked with a reason
-- workspace/sync_plan.md output_files records the updated spec path or BLOCKED/MANUAL_DECISION
-- workspace/sync_plan.md status records DONE, BLOCKED, MANUAL_DECISION, or VERIFICATION_FAILED when status exists
+  path: '{target}'
 workflow_ref: core-kernel/workflows/sync/apply_leaf.md

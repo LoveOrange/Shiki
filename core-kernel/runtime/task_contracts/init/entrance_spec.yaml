@@ -1,0 +1,14 @@
+kind: canonical
+id: entrance_spec
+stage: Init
+goal: Generate or update one entrance aggregate spec from a planned Controller/API group slice.
+inputs:
+- path: shiki_context/workspace/_plan.md
+  required: true
+- path: shiki_context/modules/{module}/index.md
+  required: false
+- path: shiki_context/project/ubiquitous_language.md
+  required: true
+output:
+  path: '{target}'
+workflow_ref: core-kernel/workflows/init/entrance_spec.md

@@ -22,5 +22,5 @@ From the Shiki repository root:
 python3 tools-skills/scripts/verify.py
 ```
 
-`scan.py` calls a `devagent` command for deep entry analysis. The verification
+`scan.py` routes deep entry analysis through the configured CLI Provider. The verification
 script injects a deterministic shim so this fixture can run without a real agent.

@@ -1,31 +1,19 @@
 # Workflows
 
-Workflows are concise human-readable procedures referenced by task contracts.
-They do not replace task contracts. A runner selects one plan item, or an
-explicit safe batch of plan items, loads each YAML contract, then loads the
-workflow named by each `workflow_ref`.
-
-Routing overview:
+Workflows are concise procedures referenced by Canonical Task Contracts. They
+do not own input manifests and never replace the Contract or Context Envelope.
 
 ```text
-core-kernel/runtime/context_loading.md       context loading budget and layering protocol
-core-kernel/runtime/task_contracts/**/*.yaml machine-readable task contracts
-core-kernel/workflows/**/*.md                self-contained human-readable workflows
-core-kernel/workflows/runner/*.md            select and route one plan item, or a safe explicit batch
-core-kernel/workflows/sync/*.md              plan Code -> Spec sync, then apply one leaf at a time
-core-kernel/workflows/doctor/*.md            diagnose read-only, then repair one confirmed item at a time
-shiki_context/constitution/tech_contracts/   project-owned tech contract slices
-L2 AS-IS leaf specs                          default Code/Test fact source
-code_contract.md                             optional implementation slice, not a replacement for L2 specs
+core-kernel/runtime/task_contracts/**/*.yaml  Canonical and Alias Contracts
+core-kernel/workflows/**/*.md                 execution and verification steps
+core-kernel/workflows/runner/next.md          shared single-Task protocol
+shiki_context/constitution/tech_contracts/    project-owned stack rules
 ```
 
-Every workflow should include:
+Every executable workflow should include `## Steps` and `## Verification`, plus
+`## Output` when it writes files. Inputs and references are loaded exclusively
+from the resolved Canonical Contract and the Kernel-built Context Envelope.
 
-- `## Load`
-- `## Steps`
-- `## Output` when it writes files
-- `## Verification`
-
-Do not load legacy docs, the full cheatsheet, or a whole module file tree by
-default. `sync` and `doctor` follow the one-item rule even when feature work uses
-the optional batch runner.
+Do not load legacy docs, the full cheatsheet, or a whole module tree by default.
+Init, feature, Sync, Doctor, Test, and Merge all follow the same one-Task Kernel
+boundary.

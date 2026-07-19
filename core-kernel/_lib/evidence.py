@@ -1,10 +1,10 @@
-"""Evidence extraction helpers used by validation and runner logic."""
+"""Evidence extraction helpers used by verifier and orchestration logic."""
 
 from .markdown import metadata_value, read_text
 
 
 def code_contract_valid(feature_dir):
-    """Check if optional code_contract.md implementation slice has a concrete version."""
+    """Check if optional code_contract.md Code Contract has a concrete version."""
     cp_path = feature_dir / "code_contract.md"
     if not cp_path.exists():
         return False, "code_contract.md missing"
@@ -16,7 +16,7 @@ def code_contract_valid(feature_dir):
 
 
 def code_contract_confirmed(feature_dir):
-    """Check if all confirmation checkboxes in the optional implementation slice are checked."""
+    """Check if all confirmation checkboxes in the optional Code Contract are checked."""
     cp_path = feature_dir / "code_contract.md"
     if not cp_path.exists():
         return False

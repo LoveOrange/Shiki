@@ -2,13 +2,6 @@
 
 > Role: Architect. Produce domain model design only. Return BLOCKED when required inputs are missing.
 
-## Load
-
-- `shiki_context/features/{feature}/design_brief.md`
-- `shiki_context/project/ubiquitous_language.md`
-- existing feature or baseline model when iterating
-- `core-kernel/runtime/design_contract.md`
-- tech contract: naming
 
 ## Steps
 

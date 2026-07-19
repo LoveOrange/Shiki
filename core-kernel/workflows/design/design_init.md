@@ -2,14 +2,6 @@
 
 > Role: Architect. Analyze the Design Brief, expand the plan, and register targets. Do not write design body content.
 
-## Load
-
-- `features/{feature}/design_brief.md`
-- `features/{feature}/_plan.md` bootstrap plan
-- `features/{feature}/index.md`
-- `core-kernel/runtime/design_contract.md`
-- `core-kernel/templates/feature/_plan.md`
-- `shiki_context/modules/{module}/index.md` when present
 
 ## Steps
 

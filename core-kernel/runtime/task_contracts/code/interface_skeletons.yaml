@@ -1,20 +1,12 @@
+kind: canonical
 id: interface_skeletons
 stage: Code
-goal: Generate interfaces and DTO skeletons from current L2 AS-IS specs.
+goal: Generate interfaces and DTO skeletons from current L2 specs.
 inputs:
-- shiki_context/features/{feature}/_plan.md
-- shiki_context/features/{feature}/modules/{module}/designs/model.md
-- shiki_context/features/{feature}/modules/{module}/designs/component.md
-references:
-- core-kernel/workflows/code/interface_skeletons.md
-output:
-  path: plan output_files
-  mode: update
-  template: ""
-checks:
-- required L2 specs exist
-- spec-code alignment check completed before editing
-done_condition:
-- interface and DTO skeletons generated and registered in _plan.md output_files
-tech_contracts: ["java/ddd-spring"]
+- path: shiki_context/features/{feature}/_plan.md
+  required: true
+- path: shiki_context/features/{feature}/modules/{module}/designs/model.md
+  required: true
+- path: shiki_context/features/{feature}/modules/{module}/designs/component.md
+  required: true
 workflow_ref: core-kernel/workflows/code/interface_skeletons.md

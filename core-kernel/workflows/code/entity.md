@@ -2,14 +2,6 @@
 
 > Role: Coder. Implement only what the current L2 AS-IS specs declare. Return BLOCKED when required leaf specs or target code context are missing.
 
-## Load
-
-- `features/{feature}/_plan.md`
-- `features/{feature}/index.md`
-- `features/{feature}/modules/{module}/designs/model.md`
-- `features/{feature}/modules/{module}/flows/*.md` when state transitions are involved
-- target source files and direct dependencies
-- tech contracts: naming and layering
 
 ## Steps
 

@@ -19,11 +19,9 @@ AI coding fails most often when the model is asked to infer too much at once:
 - generated code drifts from team rules
 - a reply is treated as done before the artifact is valid
 
-Shiki narrows the model's job. The harness owns task routing, context loading,
-state transitions, topology selection, review gates, and validation. The model
-performs bounded plan items against contracts inside an adaptive execution
-session. Strong tools can use workers internally; users still invoke the same
-commands.
+Shiki narrows the model's job. The Core Kernel owns task routing, context
+loading, dependencies, output-controlled state transitions, and validation. A
+provider executes one Kernel-prepared Task at a time.
 
 Shiki sits above provider-local loops. Codex, Claude Code, OpenCode, Gemini, or
 future providers can still read, edit, test, and fix inside a bounded
@@ -36,9 +34,9 @@ the durable state is written.
 - Workflow-driven execution: each task is routed from `_plan.md` to a task contract and a workflow.
 - Provider-backed execution: providers execute bounded assignments; Shiki Core
   owns routing, gates, evidence, and resumable state.
-- Adaptive execution sessions: `/shiki-next` automatically chooses a
-  single-agent or agent-team topology from adapter metadata, task graph, context
-  budget, and stop conditions.
+- Dual collaboration tracks: CLI automation uses a fresh Provider session for
+  every Task and a separate Review session, while Prompt commands execute one
+  Task in the developer's current Coding Agent session with explicit Review.
 - File-backed state: briefs, specs, plans, tech rules, and outputs live in versioned files.
 - Current valid specs: the active leaf specs in scope are the source of truth.
 - L2 AS-IS specs: code follows current leaf specs directly; `code_contract.md` is only an optional implementation slice.
@@ -47,8 +45,8 @@ the durable state is written.
 - Tech contracts: language and architecture rules are replaceable stacks. The
   default reference stack is DDD-oriented, such as `java/ddd-spring`, but DDD is
   not hard-coded into the kernel.
-- Review gates: task output is not complete until execution, verification,
-  review, evidence, and plan state all pass.
+- Output-controlled completion: only a successful Task with validated declared
+  outputs updates the Plan ledger; failure statuses leave it unchanged.
 - Design reuse gate: design tasks must check reusable baseline/source facts
   before adding new concepts, flows, fields, services, or error codes.
 - Test workflow: feature plans can route API cases, unit cases, test code, and
@@ -175,7 +173,7 @@ Expected project-local files:
 | tool | install target | command files | extra files |
 | :--- | :--- | :--- | :--- |
 | Codex | `codex` | `.codex/prompts/shiki-*.md` | `.codex/skills/shiki/SKILL.md` |
-| Claude Code | `claude` | `.claude/commands/shiki-*.md` | `.claude/agents/shiki-phase-wave.md` |
+| Claude Code | `claude` | `.claude/commands/shiki-*.md` | - |
 | Gemini CLI | `gemini` | `.gemini/commands/shiki-*.toml` | - |
 | OpenCode | `opencode` | `.opencode/commands/shiki-*.md` | `.opencode/agents/shiki-*.md` |
 
@@ -202,15 +200,18 @@ running, reload its command surface or restart the session after installation.
 `/shiki-web-spec [scope]` provide the utility command surface for setup,
 diagnosis, and generated spec views.
 
-`/shiki-next` is the user-facing coordinator. It starts an adaptive execution
-session and does not ask the user to choose single-agent or agent-team mode.
-Strong adapters may use bounded batch, phase-wave, or worker delegation
-internally when Core Kernel stop rules allow it, but plan state, task contracts,
-review gates, `output_files`, evidence, and verification remain controlled by
-Shiki Core. `/shiki-apply` remains a compatibility entry with the same adaptive
-semantics as `/shiki-next`. `/shiki-sync` remains an advanced compatibility
-command for explicit Code -> Spec synchronization; daily sync behavior should be
-routed through `modify`, `review`, or `doctor` when possible.
+`/shiki-next` is the Prompt-track entry. It calls the same deterministic Kernel
+tools as the CLI, executes exactly one prepared Task in the developer's current
+Coding Agent session, records outputs only on `PASS`, and returns control.
+Review runs only when the developer invokes `/shiki-review`. `/shiki-apply` is a
+compatibility alias with the same one-Task behavior.
+
+The automatic CLI track is intentionally different: `shiki next`, `shiki scan`,
+and `shiki sync` start a fresh configured Provider process for every Task and a
+separate fresh process for Review at the configured Task or phase boundary.
+Read-only or explicitly scoped CLI Provider commands include `status`, `review`,
+`modify`, `fix`, `test`, `doctor`, and `flow`. See `docs/v4-architecture.md` and
+`docs/v4-runtime-flows.md`.
 
 `docs/CHEATSHEET.md` remains the fallback prompt panel for agents without an
 installed adapter.
@@ -266,5 +267,4 @@ python3 tools-skills/scripts/verify.py
 
 The verification script compiles Python helpers, checks references, creates a
 sample project, runs init, scan, feature, and adapter-install flows with a
-deterministic `devagent` shim, validates tool-native adapter files, and checks
-docs publishing behavior.
+deterministic fake Codex executable, and validates tool-native adapter files.

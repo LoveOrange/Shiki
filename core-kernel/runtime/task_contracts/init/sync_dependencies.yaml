@@ -1,0 +1,3 @@
+kind: alias
+id: sync_dependencies
+canonical: init/sync_project_artifact.yaml

@@ -2,13 +2,6 @@
 
 > Role: Architect. Produce module boundary and anti-corruption design only.
 
-## Load
-
-- `features/{feature}/modules/{module}/designs/model.md`
-- `features/{feature}/design_brief.md`
-- baseline `modules/{module}/designs/acl.md` when present and read-only
-- `core-kernel/runtime/design_contract.md`
-- tech contract: ACL
 
 ## Steps
 

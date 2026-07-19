@@ -2,125 +2,49 @@
 
 ## North Star
 
-Shiki is a workflow kernel for controllable AI software development. Its purpose
-is to make AI coding depend less on long chat memory and more on explicit
-engineering files:
+Shiki is a deterministic workflow kernel for controllable AI-assisted software
+development. Durable files, not conversation memory, define the current work:
 
-- bounded phases
-- atomic tasks
-- adaptive execution sessions
-- minimal context loading
-- rule-pack-driven behavior
-- file-backed state
-- repeatable verification
+- explicit phases and Plans
+- atomic Task Contracts
+- deterministic context loading
+- replaceable tech contracts
+- verifiable outputs and resumable state
 
-The kernel sits above provider-local coding loops. Providers may read, edit,
-test, and fix inside a bounded assignment; Shiki owns the project and phase loop
-that chooses the assignment, loads context, applies gates, records evidence, and
-preserves resumable state.
+## Stable execution atom
 
-The kernel should be language-neutral. Languages, architecture styles, model
-providers, and private team standards should attach through configuration and
-tech contracts rather than being hard-coded into core.
+One Plan row routed through one Task Contract is the stable execution atom. The
+Core Kernel owns routing, the Context Envelope, dependencies, output ownership,
+and completion. Providers only perform the prepared Task.
 
-## Product Thesis
+Canonical contracts contain the full goal, inputs, references, output, checks,
+retry rule, and `workflow_ref`. Alias contracts contain only `id` and
+`canonical`. Task Review is a session concern, not Task Contract or Plan state.
 
-Most AI coding failures are workflow failures before they are model failures.
-Shiki narrows the model's task. The harness owns decomposition, context
-assembly, topology selection, state transitions, review gates, and validation.
-The stable atom is the bounded plan item and its task contract; capable runners
-may execute several safe atoms inside one adaptive execution session without
-weakening that ledger.
+## Dual collaboration tracks
 
-Shiki specs are also the technical project skeleton. They should help models
-write code, but they should also let technical users inspect module boundaries,
-domain language, flows, interfaces, persistence decisions, integration points,
-risks, and verification evidence without reverse-engineering the whole source
-tree.
+Shiki v4 has two intentional collaboration tracks:
 
-## Design Principles
+- CLI automatic: Shiki owns orchestration, opens a fresh Provider session for
+  every Task, and runs Review in a separate fresh session at configured Task or
+  phase boundaries.
+- Prompt manual: the developer invokes a tool-native command; the Task runs in
+  the current Coding Agent session and Review happens only when requested.
 
-### 1. Phase Machine Over Chat Flow
+Both tracks use the same Kernel tools, Plan, contracts, workflows, Context
+Envelope, and result protocol. They do not share session lifecycle or Review
+triggers.
 
-The project advances through explicit phases instead of an open-ended
-conversation:
+## Design principles
 
-```text
-Init -> Requirement -> Design -> Code -> Test -> Merge
-```
+1. Phase machine over chat flow.
+2. Files over hidden memory.
+3. Task Contracts over prompt templates.
+4. Tech contracts as replaceable loadouts.
+5. Provider adapters perform Tasks but do not route them.
+6. DDD is the reference stack, not a Kernel assumption.
+7. `output_files` is the completion ledger; failures do not mutate it.
+8. Human control remains visible in the Prompt track.
 
-### 2. Files Over Conversation Memory
-
-Long-lived knowledge must be stored as files. A new model session should be able
-to resume from repository state without hidden chat history.
-
-### 3. Task Contracts Over Prompt Templates
-
-Prompts are implementation details. The stable unit is the task contract: goal,
-inputs, references, output, checks, retry policy, and done condition.
-
-### 4. Tech Contracts As Replaceable Loadouts
-
-The kernel must not know what Java, Spring, React, pytest, or any private rule
-set means. Those belong in stack ids such as `java/ddd-spring`.
-
-### 5. Runners Are Adapters
-
-Shiki starts with command-oriented integration because it is portable. Future
-runners can support provider SDKs, local model servers, hosted execution, or IDE
-agents without changing task contracts.
-
-### 6. DDD Is The Reference Stack, Not The Kernel
-
-DDD is Shiki's default architecture stance because bounded contexts,
-ubiquitous language, aggregates, domain services, repositories, adapters, and
-ACLs give agents business-aligned boundaries. Those boundaries make product
-intent easier to trace into implementation.
-
-Core Kernel must not assume DDD concepts directly. It should understand phase,
-plan item, task contract, workflow, tech contract, leaf spec, evidence, and
-gates. DDD, MVC, frontend, data-pipeline, or private architecture styles should
-be replaceable through tech contracts and templates.
-
-### 7. Phase Orchestrators Loop Over Task Primitives
-
-`next` is the primitive execution step. Higher-level phase commands such as
-future `arch` or `coding` commands should orchestrate repeated `next`-style
-execution until a phase gate, blocker, manual decision, failed verification,
-context budget, or configured review/fix policy stops the run.
-
-Auto-review and auto-fix modes strengthen the loop by adding deeper review and
-bounded retries. They must not bypass mandatory acceptance gates or mark a plan
-item done without evidence and verification.
-
-### 8. Verification Gates Are Mandatory
-
-An output is not done because the model replied. It is done when declared
-checks pass, review passes, evidence is recorded, and plan state is updated.
-
-### 9. Tool Topology Is Internal
-
-Users should not choose single-agent or agent-team mode. Shiki detects adapter
-capabilities and chooses the execution topology internally from plan graph,
-context budget, risk, and stop conditions.
-
-### 10. Human Control Stays Visible
-
-Humans can edit briefs, override tech contracts, retry tasks, mark gates blocked,
-accept or reject design, and merge or discard feature overlays.
-
-## First Public Milestone
-
-The first public milestone is a small but complete loop:
-
-```text
-Design Brief -> L2 AS-IS Specs -> Code Task -> Verification Gate
-```
-
-Required outcomes:
-
-- one task contract format
-- one command runner boundary
-- one reference tech contract stack
-- one example project
-- one verification script that checks more than file existence
+The public milestone remains a complete loop from Design Brief through current
+leaf specs, code, tests, and verified outputs.

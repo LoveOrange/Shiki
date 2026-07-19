@@ -1,0 +1,10 @@
+kind: canonical
+id: run
+stage: Test
+goal: Run the project verifier and report its result.
+inputs:
+- path: shiki_context/features/{feature}/_plan.md
+  required: true
+- path: shiki_context/features/{feature}/tests/test_cases.md
+  required: true
+workflow_ref: core-kernel/workflows/test/run.md

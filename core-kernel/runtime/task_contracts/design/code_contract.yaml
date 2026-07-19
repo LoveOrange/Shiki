@@ -1,29 +1,18 @@
+kind: canonical
 id: code_contract
 stage: Design
-goal: Optionally extract key facts from L2 AS-IS specs into a temporary implementation slice.
+goal: Extract key facts from current L2 specs into one temporary Code Contract.
 inputs:
-- shiki_context/features/{feature}/modules/{module}/designs/model.md
-- shiki_context/features/{feature}/modules/{module}/designs/persistence.md
-- shiki_context/features/{feature}/modules/{module}/designs/acl.md
-- shiki_context/features/{feature}/modules/{module}/designs/component.md
-- shiki_context/features/{feature}/modules/{module}/entrances/*.md
-- shiki_context/features/{feature}/modules/{module}/flows/*.md
-references:
-- core-kernel/runtime/design_contract.md
-- core-kernel/workflows/design/code_contract.md
+- path: shiki_context/features/{feature}/modules/{module}/designs/model.md
+  required: true
+- path: shiki_context/features/{feature}/modules/{module}/designs/persistence.md
+  required: true
+- path: shiki_context/features/{feature}/modules/{module}/designs/acl.md
+  required: false
+- path: shiki_context/features/{feature}/modules/{module}/designs/component.md
+  required: true
+- path: shiki_context/features/{feature}/modules/{module}/entrances/*.md
+  required: false
 output:
   path: features/{feature}/code_contract.md
-  mode: create
-  template: core-kernel/templates/feature/code_contract.md
-checks:
-- all design files exist
-- explicit reuse refs in §0 Baseline Delta are traceable when used
-- Design Contract Reuse Gate completed for implementation-slice scope
-- no new design facts are introduced in code_contract.md
-done_condition:
-- code_contract.md created as an implementation slice with §1-§6 non-empty
-- Source Specs recorded
-- Contract Version set
-- all confirmation checkboxes initialized
-- every implementation fact traces to an upstream L2 spec or explicit reuse ref
 workflow_ref: core-kernel/workflows/design/code_contract.md

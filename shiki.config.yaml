@@ -18,3 +18,15 @@ context_dir: shiki_context
 # Tech contract stack ids under tech-stacks/tech-contracts/.
 tech_stacks:
   - java/ddd-spring
+
+# CLI automatic-track boundary. Every Task runs in a fresh Provider process;
+# Review runs in another fresh, read-only process.
+orchestrate:
+  granularity: task  # task | phase | feature
+
+# Built-in CLI Provider. Supported values: codex, claude.
+# `model` and `executable` are optional provider-specific overrides.
+provider:
+  name: codex
+#   model: gpt-5.4
+#   executable: /path/to/codex

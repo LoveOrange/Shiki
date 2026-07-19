@@ -1,28 +1,31 @@
 # Runtime
 
-Runtime documents define how Shiki loads context, routes task contracts, and
-checks phase gates. Normal execution flows through:
+## State
 
-```text
-active_task.md -> _plan.md -> task contract -> workflow -> template/tech contract
-```
+- Current-valid leaf specs are the durable facts.
+- Task Contracts are minimal signatures; Workflows own execution and project validation.
+- `README.md` is human navigation, `index.md` routes specs, and `_plan.md.output_files` is the completion ledger.
+- Code/Test use current L2 leaf specs by default; `code_contract.md` is an optional context slice.
+- Review is not Task state.
 
-State principles:
+## Orchestrator
 
-- Plain specs express current valid facts.
-- Gates check that files exist, are complete, and are consistent.
-- L2 AS-IS leaf specs are the default Code/Test fact source.
-- `code_contract.md` is only an optional implementation slice.
-- Project/module/feature scopes use `README.md` for humans, `index.md` for routing, and `_plan.md` for task/output ledgers.
-- Plan items stay atomic even when `/shiki-next` starts an adaptive execution
-  session that advances several safe ready items in one invocation.
-- Execution sessions choose `single_agent_session` or `agent_team_session`
-  automatically from adapter metadata, plan state, context budget, and stop
-  conditions; users do not pass a single/team mode.
-- Item review is a completion gate. A task is done only after execution,
-  verification, review, evidence, and plan state update all pass.
-- Multi-step commands such as `sync` and `doctor` create workspace temporary plans before changing files, then execute one item at a time.
+The CLI Orchestrator repeatedly performs a single-Task lifecycle:
 
-Use `phase_contract.md` only as fallback guidance when plan or gate state is
-missing. Use `context_loading.md` as the authoritative loading policy and
-`execution_session.md` as the `/shiki-next` coordinator policy.
+1. read active scope and Plan;
+2. call Task Router and required-input gate;
+3. build a minimal Context Envelope;
+4. start one fresh Provider session;
+5. validate the first status line and output ledger;
+6. start a separate Review session at the configured boundary;
+7. continue or stop without turning Review prose into edits.
+
+Prompt manual mode skips the outer Orchestrator and Agent Adapter but calls the same Kernel Task Tools from the developer's current session.
+
+## Development Lifecycle
+
+`Init -> Design -> Code -> Test -> Merge`.
+
+Init establishes baseline once. Flow/sequence diagrams are optional review artifacts, not default Plan requirements.
+
+See `context_loading.md`, `execution_session.md`, `phase_contract.md`, task contracts, and Workflows for the stable protocol.

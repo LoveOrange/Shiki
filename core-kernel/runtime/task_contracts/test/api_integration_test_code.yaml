@@ -1,26 +1,12 @@
+kind: canonical
 id: api_integration_test_code
 stage: Test
 goal: Write or update API integration test code from Integration Tests cases.
 inputs:
-- shiki_context/features/{feature}/_plan.md
-- shiki_context/features/{feature}/tests/test_cases.md
-- shiki_context/features/{feature}/modules/{module}/entrances/*.md
-- target adapter source files from Code item output_files
-- existing integration test conventions
-references:
-- core-kernel/workflows/test/api_integration_test_code.md
-output:
-  path: plan output_files
-  mode: update
-  template: ""
-checks:
-- Integration Tests cases exist in tests/test_cases.md
-- adapter or API entrypoint code exists
-- integration test bootstrap convention is loaded from tech contract or existing tests
-- tests assert API observable behavior instead of implementation details
-done_condition:
-- integration test files are created or updated and registered in _plan.md output_files
-- integration tests map to relevant TC-INT cases
-- assertions cover request method, input, expected response, and observable side effects when declared
-tech_contracts: ["java/ddd-spring"]
+- path: shiki_context/features/{feature}/_plan.md
+  required: true
+- path: shiki_context/features/{feature}/tests/test_cases.md
+  required: true
+- path: shiki_context/features/{feature}/modules/{module}/entrances/*.md
+  required: true
 workflow_ref: core-kernel/workflows/test/api_integration_test_code.md

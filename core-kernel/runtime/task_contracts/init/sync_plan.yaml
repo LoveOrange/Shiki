@@ -1,0 +1,14 @@
+kind: canonical
+id: sync_plan
+stage: Init
+goal: Expand one completed Init plan into bounded project-level synchronization tasks.
+inputs:
+- path: shiki_context/workspace/_plan.md
+  required: true
+- path: shiki_context/project/index.md
+  required: true
+- path: shiki_context/modules/*/index.md
+  required: false
+output:
+  path: workspace/_plan.md
+workflow_ref: core-kernel/workflows/init/sync_plan.md

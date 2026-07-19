@@ -2,15 +2,6 @@
 
 > Role: Coder. Implement transport adapters from current L2 AS-IS specs only.
 
-## Load
-
-- `features/{feature}/_plan.md`
-- `features/{feature}/index.md`
-- `features/{feature}/modules/{module}/designs/component.md`
-- `features/{feature}/modules/{module}/entrances/*.md`
-- `features/{feature}/modules/{module}/flows/*.md` when entry branches require it
-- target source
-- tech contracts: naming and layering
 
 ## Steps
 

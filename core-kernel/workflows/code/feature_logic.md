@@ -2,16 +2,6 @@
 
 > Role: Coder. Implement application/domain behavior from current L2 AS-IS specs only.
 
-## Load
-
-- `features/{feature}/_plan.md`
-- `features/{feature}/index.md`
-- `features/{feature}/modules/{module}/designs/model.md`
-- `features/{feature}/modules/{module}/designs/component.md`
-- `features/{feature}/modules/{module}/designs/acl.md` when present
-- `features/{feature}/modules/{module}/flows/*.md`
-- target source and direct call-chain source
-- tech contracts: layering and exception
 
 ## Steps
 

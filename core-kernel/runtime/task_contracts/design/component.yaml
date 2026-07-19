@@ -1,27 +1,16 @@
+kind: canonical
 id: component
 stage: Design
 goal: Generate component design from model, persistence and ACL.
 inputs:
-- shiki_context/features/{feature}/modules/{module}/designs/model.md
-- shiki_context/features/{feature}/modules/{module}/designs/persistence.md
-- shiki_context/features/{feature}/modules/{module}/designs/acl.md
-references:
-- core-kernel/runtime/design_contract.md
-- core-kernel/workflows/design/component.md
+- path: shiki_context/features/{feature}/modules/{module}/designs/model.md
+  required: true
+- path: shiki_context/features/{feature}/modules/{module}/designs/persistence.md
+  required: true
+- path: shiki_context/features/{feature}/modules/{module}/designs/acl.md
+  required: false
+- path: shiki_context/modules/{module}/designs/component.md
+  required: false
 output:
   path: features/{feature}/modules/{module}/designs/component.md
-  mode: create
-  template: core-kernel/templates/module/designs/_component_template.md
-checks:
-- modules/{module}/designs/model.md exists
-- modules/{module}/designs/persistence.md exists
-- modules/{module}/designs/acl.md exists
-- baseline delta table uses only reuse/add/extend/modify/deprecate when generating feature overlay
-- Design Contract Reuse Gate completed before output generation
-- every add has brief/upstream evidence and no reusable baseline/source equivalent
-done_condition:
-- modules/{module}/designs/component.md created with 4-layer complete
-- §0 Baseline Delta filled or MANUAL_DECISION returned
-- §0 Reuse Decision Gate records checked baseline/source candidates and reuse/extend/add justification
-tech_contracts: ["java/ddd-spring"]
 workflow_ref: core-kernel/workflows/design/component.md

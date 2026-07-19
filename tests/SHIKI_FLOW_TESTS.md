@@ -1,198 +1,152 @@
-# Shiki Flow Regression Spec
+# Shiki v4 Flow Regression Scenarios
 
-This file defines integration scenarios for Shiki maintainers and AI agents. It
-is a test specification, not a command log.
+These scenarios are the manual regression contract for workflow, Task Contract,
+context-loading, and gate changes.
 
-## HIT-001 Init Creates Context Store
+## Shared Kernel
 
-Given a consumer project contains `shiki/` and `shiki.config.yaml`
-When `shiki init` or `python shiki/tools-skills/scripts/init.py` runs
-Then `shiki_context/workspace`, `project`, `modules`, `features`, and
-`constitution/tech_contracts` exist
-And selected tech contracts are copied into the project-owned constitution.
+### Scenario: Canonical and Alias Contracts remain distinct
 
-## HIT-002 Scan Discovers Entrances
+Given every YAML file under `core-kernel/runtime/task_contracts/`
+When the contract inventory is validated
+Then every Canonical Contract has `kind`, `id`, `stage`, `goal`, `inputs`, and one `workflow_ref`
+And every Alias Contract has only `kind`, `id`, and `canonical`
+And Alias resolution terminates at one valid Canonical Contract.
 
-Given a Java DDD Spring sample project
-When `scan.py --only s0.1` runs
-Then `shiki_context/workspace/_plan.md` contains init.entrance tasks and init.sync routed by `contract`
-And project/module indexes are created or updated.
+### Scenario: one Plan row is one Task
 
-## HIT-003 Dependency Scan Writes Project Specs
+Given a Plan with several ready rows
+When `shiki task next` runs
+Then exactly one row is selected
+And dependencies are checked before selection
+And the Context Envelope contains the resolved Canonical Contract and workflow
+And duplicate documents with identical content are loaded only once.
 
-Given a devagent-capable environment
-When `scan.py --only s0.2` runs
-Then project `techstack.md` and `integration.md` are updated from build/config files
-And uncertain facts are marked TBD.
+### Scenario: completion is output-controlled
 
-## HIT-004 Entry Analysis Produces Module Specs
+Given an active prepared Task
+When `shiki task complete` receives every declared output and those files exist
+Then `output_files` is updated and `active_task.md` advances
+But when the Provider returns `BLOCKED`, `FAILED`, or `MANUAL_DECISION`
+Then the completion tool is not called and the Plan ledger is unchanged.
 
-Given an init.entrance plan row
-When the entry analysis workflow runs
-Then module `entrances/*.md` and `flows/*.md` are created or updated
-And the flow contains a Discovery Log.
+### Scenario: deterministic Plan expansion
 
-## HIT-005 Feature Bootstrap
+Given a Canonical Task that may discover child work
+When it calls `shiki plan add-item` with a valid owned child
+Then the child is inserted deterministically with validated dependencies
+And a Provider cannot write arbitrary Plan rows directly.
 
-Given initialized `shiki_context/`
-When `shiki new-feature --taskid FEAT-001` or `new_feature.py --taskid FEAT-001` runs
-Then a feature workspace with `design_brief.md`, `_plan.md`, `index.md`,
-and `tests/test_cases.md` exists
-And the bootstrap plan contains the design_init item.
+## CLI automatic track
 
-## HIT-006 Design Init Expands Plan
+### Scenario: fresh Task sessions
 
-Given a filled Design Brief
-When design_init runs
-Then `_plan.md` expands to direct design, code, and merge tasks using Target Outputs
-And targets are feature-root relative, not baseline paths
-And feature index records generated leaf specs and Baseline Delta guidance.
+Given `provider.name` selects Codex or Claude
+When `shiki next` executes two ready Tasks
+Then each Task starts a new Provider process
+And no provider conversation state is reused between Tasks
+And every process receives only its prepared Context Envelope.
 
-## HIT-007 L2 Spec Gate
+### Scenario: Review is isolated
 
-Given model, persistence, ACL, component, entrance, and flow specs
-When Code tasks are selected
-Then required L2 AS-IS leaf specs exist and are routable from the feature index
-And downstream Code/Test items are not marked STALE.
-And each Design leaf spec records `§0 Reuse Decision Gate` before adding new facts.
+Given a Task completes successfully at the configured Review boundary
+When the CLI triggers Review
+Then Review starts in a separate fresh Provider process
+And Codex uses a read-only sandbox or Claude uses `plan` permission mode
+And its first line is one of `PASS`, `CHANGE_REQUEST`, `BLOCKED`, `FAILED`, or `MANUAL_DECISION`
+And `CHANGE_REQUEST` stops orchestration without turning Review prose into edits.
 
-## HIT-008 Code Tasks Obey L2 Specs
+### Scenario: Provider status is mandatory
 
-Given current L2 AS-IS leaf specs and target source context
-When Code tasks run
-Then generated code changes only facts declared by those specs
-And plan output_files are updated.
+Given a Provider process returns output
+When the first non-empty line is not an allowed status
+Then the CLI treats the result as failed
+And no Task completion state is written.
 
-## HIT-008A Batch Runner Preserves Task Atoms
+## Prompt manual track
 
-Given multiple ready feature plan items and a capable coding agent
-When `/shiki-next`, batch, or auto claims an execution window
-Then each selected item still loads its own task contract and workflow
-And review and verification pass before any item is marked complete
-And status, output_files, evidence, and review_result are updated after each completed item when those columns exist
-And the window stops at Merge, MANUAL_DECISION, BLOCKED, missing input, ambiguous ownership, baseline writes, failed review, or failed verification.
+### Scenario: execute in the current Coding Agent session
 
-## HIT-009 Merge Writes Baseline
+Given a project-local adapter and an active developer session
+When the developer invokes `/shiki-next`
+Then the adapter calls `shiki task next`
+And executes exactly one returned Context Envelope in that same session
+And calls `shiki task complete` only on `PASS`
+And stops after the Task.
 
-Given accepted feature overlay specs and verification evidence
-When feature_merge runs
-Then baseline module specs are updated
-And module index paths remain valid.
-And every merge action traces to Baseline Delta.
-And Merge depends on Test run-and-route evidence when generated test tasks apply.
+### Scenario: Review timing belongs to the developer
 
-## HIT-010 Sync Plans Before Applying
+Given a Prompt-track Task has completed
+When the developer has not invoked `/shiki-review`
+Then the adapter does not start Review
+And it does not start a phase wave, batch, worker loop, or fresh session.
 
-Given changed source files or a bounded git diff scope
-When sync runs
-Then `shiki_context/workspace/sync_plan.md` is created or updated first
-And apply_leaf updates at most one target leaf spec from direct source evidence.
+### Scenario: adapter manifests expose only Prompt semantics
 
-## HIT-011 Doctor Is Confirmed And Bounded
+Given adapters are installed for Codex, Claude Code, Gemini CLI, and OpenCode
+When their manifests are inspected
+Then `collaboration_track` is `prompt_manual`
+And `execution_modes` is only `single_task_current_session`
+And `session_owner` and `review_owner` are `developer`
+And no Shiki-managed phase-wave agent remains.
 
-Given a context-store maintenance issue
-When doctor runs without explicit confirmation
-Then it outputs a read-only diagnosis and does not modify files.
-When confirmation is provided
-Then it creates `shiki_context/workspace/doctor_plan.md`
-And apply_item repairs at most one deterministic item.
+## Init and Scan
 
-## HIT-012 Public Surface Is Clean
+### Scenario: scan seeds Kernel-routable Init work
 
-Given the public Shiki repository
-When maintenance verification runs
-Then the public source excludes local context, caches, and private transfer scripts
-And no non-English source text, legacy brand references, or organization-specific package names remain.
+Given initialized Shiki context and source configuration
+When `scan.py` seeds an empty Init Plan
+Then controller inspection rows use `init/inspect_controller.yaml`
+And one `init/sync_plan.yaml` row depends on the inspections
+And the Plan uses only `id`, `phase`, `target`, `module`, `depends_on`, `contract`, and `output_files`.
 
-## HIT-013 Adapter Contract Surface
+### Scenario: Flow is optional
 
-Given Phase 1 tool-native adapters are installed into a consumer project
-When adapter regression checks run
-Then installed adapter files reference the v1 adapter contract
-And the contract defines the Codex, Claude Code, Gemini CLI, and OpenCode capability matrix
-And each canonical command maps to Core Kernel entry points before host-tool-specific behavior
-And `/shiki-status`, `/shiki-next`, and `/shiki-modify <target>` map to Core Kernel context loading, task contracts, and workflow references
-And utility commands `/shiki-scan`, `/shiki-new-feature <taskid>`, `/shiki-apply`, `/shiki-fix <stacktrace>`, and `/shiki-web-spec [scope]` map to scripts or workflows instead of duplicating process logic
-And adapter execution reports `BLOCKED`, `MANUAL_DECISION`, and verification failures without marking incomplete plan items done.
+Given an entrance is discovered
+When no explicit Flow Task is added to the Plan
+Then no Flow spec is created implicitly
+But when a Flow Task is added through the Kernel
+Then it routes through the Canonical `init/flow.yaml` Contract.
 
-## HIT-014 Adapter Install And Commands
+## Feature, Test, Sync, and Doctor
 
-Given a consumer project contains `shiki/`
-When `shiki adapter install --tool all` or `python shiki/tools-skills/scripts/install_agent_adapter.py --tool all` runs
-Then Codex, Claude Code, Gemini CLI, and OpenCode project-local command files are created
-And repeated installer runs skip matching Shiki-managed files without duplicates
-And generated manifests include the utility command files
-And `/shiki-next` remains the user-facing command while adaptive topology selection, bounded batch, phase-wave, and subagent execution stay internal strategies.
+### Scenario: feature bootstrap routes through Design
 
-## HIT-015 Claude Code Phase-Wave Adapter
+Given a new feature workspace
+When its bootstrap Plan is routed
+Then the first Canonical Task is `design/design_init.yaml`
+And expanded rows keep the six v4 columns
+And Design reads baseline/source facts before adding new concepts.
 
-Given the Claude Code adapter is installed into a consumer project
-When `/shiki-next` considers phase-wave or subagent delegation
-Then `.claude/commands/shiki-next.md` keeps the root session responsible for plan state, dependency checks, `status`, `output_files`, evidence, review_result, and verification
-And `.claude/commands/shiki-modify.md` exposes `argument-hint: <target>`
-And `.claude/agents/shiki-phase-wave.md` requires a root assignment before edits
-And the worker refuses Merge, plan-state updates, missing assignment fields, ambiguous ownership, and failed verification.
+### Scenario: Test reports a status-first result
 
-## HIT-016 Tool-Native Command Invocation Happy Paths
+Given a Test `run` Task
+When the project verifier passes
+Then the Provider returns `PASS: <summary>` and may complete with a permitted no-file reason
+But when the verifier fails
+Then it returns `BLOCKED: <reason>` with evidence and no ledger mutation.
 
-Given Codex, Claude Code, Gemini CLI, and OpenCode adapters are installed into a consumer project
-When a user invokes `/shiki-status`, `/shiki-next`, `/shiki-modify <target>`, or a utility command from the native command surface
-Then each command loads the adapter contract before tool-specific guidance
-And `/shiki-status` loads Core Kernel context and remains read-only
-And `/shiki-next` loads execution_session and runner/next, auto-selects topology, loads task contracts, and marks plan state only after review and verification
-And `/shiki-modify <target>` treats trailing command text as the required bounded target and returns `BLOCKED` when the target is missing or ambiguous
-And `/shiki-new-feature <taskid>`, `/shiki-fix <stacktrace>`, and `/shiki-web-spec [scope]` forward host-tool arguments into the generated command body
-And active tool sessions document the required reload or restart step after command files change.
+### Scenario: Sync uses a bounded published-v4 Plan
 
-## HIT-017 Adaptive Coordinator Session
+Given Code-to-Spec drift may affect several leaf specs
+When Sync planning runs
+Then it writes bounded `sync_plan.md` items
+And each apply Task updates at most one leaf through `sync/apply_leaf.yaml`
+And every changed fact traces to source evidence.
 
-Given a current plan with multiple ready Design or Code items
-When `/shiki-next` runs from an installed adapter
-Then the coordinator reads adapter manifest capabilities and does not ask the user to choose single-agent or agent-team mode
-And it claims a bounded execution window from the plan graph, direct context budget, and stop conditions
-And it re-evaluates whether to continue after every item review
-And it stops at phase gate, context budget boundary, BLOCKED, MANUAL_DECISION, failed review, or failed verification.
+### Scenario: Doctor separates diagnosis from repair
 
-## HIT-018 Plan State And Review Gate
+Given a consistency issue
+When Doctor planning runs
+Then diagnosis is read-only and produces explicit repair items
+And each repair item applies only one confirmed correction
+And unrelated files remain unchanged.
 
-Given a new or migrated feature plan
-When any task item is completed by `/shiki-next`, `/shiki-apply`, sync, or doctor
-Then the plan can record status, output_files, evidence, and review_result
-And status DONE is used only after execution, task-contract checks, verification, and review pass
-And old plans without the new columns remain routable through output_files compatibility
-And doctor can diagnose adapter contract, context interface, plan schema, and spec/index health.
+## Merge
 
-## HIT-019 Pip CLI Install
+### Scenario: Merge requires completed upstream outputs
 
-Given the `shiki` CLI is installed through the `shiki-workflow` Python package
-When `shiki install --tool codex` runs in a consumer project
-Then the project gets a `shiki/` framework directory, initialized `shiki_context/`,
-and Codex adapter command files
-And `shiki adapter install --tool codex --dry-run` reports a plan without writing
-And `shiki new-feature --taskid FEAT-001` creates the feature workspace through
-the same low-level Shiki helpers as the direct Python script path.
-
-## HIT-020 Design Reuse Gate
-
-Given a Design task creates or updates a feature overlay spec
-When the task reads its contract and workflow
-Then `core-kernel/runtime/design_contract.md` is loaded
-And the output records `§0 Reuse Decision Gate`
-And every `add` has brief or upstream evidence plus a reason reuse or extension is not correct
-And the model spec uses a domain `classDiagram`, not a database `erDiagram`.
-
-## HIT-021 Test Workflow Gates
-
-Given a feature plan is expanded from a design brief
-When test tasks apply
-Then API cases update `tests/test_cases.md` without loading source code
-And unit cases update `tests/test_cases.md` from target source and direct dependencies
-And test code tasks create or update unit/integration tests from recorded cases
-And run-and-route classifies failures as `test -> code`, `test -> spec`, or `test -> feature`.
-
-## HIT-022 Team Norm Constitution
-
-Given Shiki init runs in a consumer project
-When `shiki_context/` is created
-Then `shiki_context/constitution/team_norm.md` exists as a project-owned collaboration rule file
-And tech contracts remain under `shiki_context/constitution/tech_contracts/`.
+Given a feature reaches Merge
+When any required Design, Code, or Test Task lacks valid `output_files`
+Then Merge is blocked
+Otherwise feature overlay specs may be reconciled into the baseline and verified.

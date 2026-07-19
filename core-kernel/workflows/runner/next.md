@@ -1,90 +1,32 @@
 # Runner Next
 
-> Role: Coordinator. Start an adaptive execution session and advance the current
-> plan through task execution, review gates, and a stable stop boundary.
+Defines single-Task dispatch for both collaboration tracks. CLI automatic mode and Prompt manual mode call the same Kernel Task Tools.
 
-## Load
+## Inputs
 
-- `core-kernel/runtime/context_loading.md`
-- `core-kernel/runtime/execution_session.md`
-- `.shiki/adapters/<tool>/manifest.json` when present
-- `shiki_context/workspace/active_task.md`
-- current scope plan:
-  - Init stage: `shiki_context/workspace/_plan.md`
-  - Feature stage: `shiki_context/features/{feature}/_plan.md`
-  - temporary maintenance plan: `shiki_context/workspace/*_plan.md`
-
-After selecting each item, load:
-
-- task contract from `core-kernel/runtime/task_contracts/`
-- workflow named by `workflow_ref`
-- template and tech contract slices declared by the workflow
-- only direct source/spec context required by the current item
-
-## Preflight
-
-1. Read adapter metadata. If the current adapter cannot be identified, use
-   `single_agent_session`.
-2. Read active task and the current plan.
-3. Select the first unfinished item whose dependencies are satisfied.
-4. Build a candidate execution window in plan order using `runner/batch.md`.
-5. Estimate context budget from direct inputs, target files, source files,
-   dependency count, and expected verification output. Use host context usage
-   only when the tool exposes it.
-6. Choose topology:
-   - `single_agent_session` when subagents or isolated worker context are not
-     available, the window has one item, the phase is Init/Requirement/Merge, or
-     the work is sync/doctor/maintenance.
-   - `agent_team_session` only when the manifest supports it, every claimed item
-     is Design or Code, ownership is clear, and root can verify after workers
-     return.
-7. Before edits, state the selected topology, claimed item ids, stop boundary,
-   review plan, and verification that will close the session.
+- Optional item id such as `D2`.
+- CLI automatic mode calls Kernel `next_task` directly.
+- Prompt manual mode calls `shiki task next [item]` in the developer's current Coding Agent session.
+- A Provider receives only the returned Context Envelope and must not route another item.
 
 ## Steps
 
-1. Execute selected items sequentially. Do not let a later item start until the
-   previous item has passed review or stopped.
-2. For each item, load its task contract before loading workflow text.
-3. Execute the workflow through the chosen topology:
-   - In `single_agent_session`, the same root context executes, reviews,
-     verifies, and updates plan state.
-   - In `agent_team_session`, the root coordinator assigns bounded Design/Code
-     work to workers, then performs final verification, review, and plan updates.
-4. Run the item review gate from `execution_session.md`.
-5. Mark the item done only after task-contract checks, verification, evidence,
-   and review all pass.
-6. Record `status`, `output_files`, `evidence`, and `review_result` when the
-   plan has those columns. For older plans, update `output_files` and preserve
-   compatibility semantics.
-7. After each item, re-evaluate stop conditions, context budget, phase gate, and
-   whether a new ready item can be claimed.
-8. Stop at the first review failure, verification failure, blocker, manual
-   decision, phase gate, unsafe boundary, or context-budget boundary.
-
-## Output
-
-- Current plan state updated after each completed and reviewed item.
-- Failed or blocked items remain unfinished or are marked with explicit
-  `BLOCKED`, `MANUAL_DECISION`, or `VERIFICATION_FAILED` state.
-- Final response lists topology, completed item ids, stopped item id if any,
-  modified files, evidence, review result, verification, and next human action.
-
-## Verification
-
-- Each completed item met its task contract checks and done condition.
-- Each completed item has passing review and verification evidence.
-- Session-level verification covers all modified files and generated specs
-  touched by the completed items.
-- If review or verification fails, do not continue the session.
+1. `next_task` parses the active Plan once and validates scope, dependencies, target, and required inputs. A missing or empty Init Plan returns the synthetic `init-plan` Task; a missing Sync Plan returns `sync-plan`.
+2. Select one Task by `active_task.next`, explicit item, then the first ready Plan row. Route a unique producer when required input is missing.
+3. Resolve Canonical/Alias Contract deterministically and build a Context Envelope from the current Task, direct dependencies, Plan metadata, required content, optional paths, and Workflow.
+4. Execute exactly that Workflow. The Provider or current interactive Agent must not select another Task.
+5. After verification, call `complete_task`:
+   - fixed output: `shiki task complete <task_id>`;
+   - flexible code output: repeat `--output <path>` for major files;
+   - no change: `--noop <reason>`;
+   - narrow Plan expansion: `shiki plan add-item ...`.
+6. Post-check the first Provider line and the Plan ledger. File outputs must exist, NOOP must include a reason, and failure statuses must not enter `output_files`.
+7. Update `_plan.md.output_files`; for feature scope also update `active_task.next`.
+8. Stop after one Task. Prompt mode returns control to the developer. CLI mode may start a fresh Provider session for the next Task or a separate Review session according to `orchestrate.granularity`.
 
 ## Forbidden
 
-- Do not ask the user to choose single-agent or agent-team mode.
-- Do not merge plan rows or rewrite the plan to make a larger task.
-- Do not skip a task contract, workflow, L2 spec, review gate, alignment check,
-  or drift/test gate.
-- Do not let workers select plan items, update `_plan.md`, or mark work done.
-- Do not continue after failed review or verification.
-- Do not load the full prompt docs, full module tree, or full source tree by
-  default.
+- Do not execute multiple Plan items in one Agent session.
+- Do not duplicate Router or completion logic in Prompt/CLI adapters.
+- Do not treat `active_task.md` or `last_run.md` as completion truth.
+- Do not write `BLOCKED`, `FAILED`, `MANUAL_DECISION`, or `CHANGE_REQUEST` into `output_files`.

@@ -1,25 +1,10 @@
+kind: canonical
 id: unit_test_code
-stage: Test
-goal: Write or update unit test code from Unit Tests cases.
+stage: Code
+goal: Write or update unit test code from current Unit Tests cases.
 inputs:
-- shiki_context/features/{feature}/_plan.md
-- shiki_context/features/{feature}/tests/test_cases.md
-- target source files from current Code item output_files
-- existing test source conventions
-references:
-- core-kernel/workflows/test/unit_test_code.md
-output:
-  path: plan output_files
-  mode: update
-  template: ""
-checks:
-- Unit Tests cases exist in tests/test_cases.md
-- target source files exist
-- test framework and mock conventions are loaded from tech contract or existing tests
-- unit tests do not require full application startup
-done_condition:
-- unit test files are created or updated and registered in _plan.md output_files
-- unit tests map to relevant TC-UNIT cases
-- required mock behavior is implemented for third-party dependencies
-tech_contracts: ["java/ddd-spring"]
+- path: shiki_context/features/{feature}/_plan.md
+  required: true
+- path: shiki_context/features/{feature}/tests/test_cases.md
+  required: true
 workflow_ref: core-kernel/workflows/test/unit_test_code.md

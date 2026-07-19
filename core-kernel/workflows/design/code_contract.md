@@ -2,14 +2,6 @@
 
 > Role: Architect. Extract a temporary implementation slice from L2 AS-IS specs for the current Code task. The slice is not a long-lived fact source.
 
-## Load
-
-- module model design
-- module persistence design
-- module ACL design
-- module component design
-- module entrances and flows when present
-- `core-kernel/runtime/design_contract.md`
 
 ## Steps
 

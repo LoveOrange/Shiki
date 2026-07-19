@@ -1,0 +1,14 @@
+kind: canonical
+id: inspect_controller
+stage: Init
+goal: Inspect one Controller/API group and expand the Init plan with entrance leaf tasks.
+inputs:
+- path: shiki_context/workspace/_plan.md
+  required: true
+- path: shiki_context/project/architecture.md
+  required: true
+- path: shiki_context/modules/{module}/index.md
+  required: false
+output:
+  path: workspace/_plan.md
+workflow_ref: core-kernel/workflows/init/inspect_controller.md

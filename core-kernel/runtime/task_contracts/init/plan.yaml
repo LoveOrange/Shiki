@@ -1,0 +1,12 @@
+kind: canonical
+id: plan
+stage: Init
+goal: Create the initial plan-driven scan ledger for existing-code baseline discovery.
+inputs:
+- path: shiki.config.yaml
+  required: true
+- path: shiki_context/workspace/active_task.md
+  required: true
+output:
+  path: workspace/_plan.md
+workflow_ref: core-kernel/workflows/init/plan.md

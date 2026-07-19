@@ -2,14 +2,6 @@
 
 > Role: Architect. Produce layered component design only.
 
-## Load
-
-- `features/{feature}/modules/{module}/designs/model.md`
-- `features/{feature}/modules/{module}/designs/persistence.md`
-- `features/{feature}/modules/{module}/designs/acl.md`
-- baseline `modules/{module}/designs/component.md` when present and read-only
-- `core-kernel/runtime/design_contract.md`
-- tech contracts: layering and naming
 
 ## Steps
 

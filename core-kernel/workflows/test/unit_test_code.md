@@ -2,13 +2,6 @@
 
 > Role: Coder. Write or update unit test code from Unit Tests cases.
 
-## Load
-
-- `features/{feature}/_plan.md`
-- `features/{feature}/tests/test_cases.md`
-- target source files
-- existing test directories, base classes, and naming conventions
-- tech contract: test framework, mock conventions, and layering rules
 
 ## Steps
 

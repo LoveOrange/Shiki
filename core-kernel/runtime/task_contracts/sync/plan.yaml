@@ -1,28 +1,16 @@
+kind: canonical
 id: sync_plan
 stage: Code
-goal: Create a bounded Code-to-Spec sync plan before loading or editing leaf specs.
+goal: Create one bounded Code-to-Spec synchronization plan.
 inputs:
-- shiki_context/workspace/active_task.md
-- user supplied changed source files, module, feature, or git diff scope
-- shiki_context/project/index.md
-- shiki_context/modules/{module}/index.md (when module scope is known)
-- shiki_context/features/{feature}/index.md (when feature scope is active)
-references:
-- core-kernel/runtime/context_loading.md
-- core-kernel/workflows/sync/plan.md
+- path: shiki_context/workspace/active_task.md
+  required: true
+- path: shiki_context/project/index.md
+  required: true
+- path: shiki_context/modules/{module}/index.md
+  required: false
+- path: shiki_context/features/{feature}/index.md
+  required: false
 output:
   path: workspace/sync_plan.md
-  mode: create_or_update
-  template: ""
-checks:
-- sync scope is derived from explicit user input or git diff, not a full module read
-- candidate specs are routed through index.md or deterministic symbol/path evidence
-evidence_rules:
-- do not edit specs during planning
-- record MANUAL_DECISION for ambiguous code-to-spec mappings
-retry_policy:
-  max_attempts: 1
-done_condition:
-- workspace/sync_plan.md contains bounded rows routed to sync/apply_leaf.yaml or MANUAL_DECISION items
-- every executable row names target spec, source files, contract, status, empty output_files, evidence, and review_result
 workflow_ref: core-kernel/workflows/sync/plan.md

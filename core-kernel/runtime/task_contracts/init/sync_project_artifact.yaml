@@ -1,0 +1,16 @@
+kind: canonical
+id: sync_project_artifact
+stage: Init
+goal: Synchronize one project-level baseline artifact.
+inputs:
+- path: shiki_context/workspace/_plan.md
+  required: true
+- path: shiki_context/modules/*/index.md
+  required: false
+- path: shiki_context/modules/*/entrances/*.md
+  required: false
+- path: shiki_context/modules/*/flows/*.md
+  required: false
+output:
+  path: '{target}'
+workflow_ref: core-kernel/workflows/init/sync_project_artifact.md

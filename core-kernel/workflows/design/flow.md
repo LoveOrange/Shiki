@@ -2,13 +2,6 @@
 
 > Role: Architect. Produce scenario flow design only.
 
-## Load
-
-- model, persistence, ACL, and component specs for the module
-- `features/{feature}/design_brief.md`
-- entrance spec when the scenario has an exposed entry
-- baseline `modules/{module}/flows/[scenario].md` when present and read-only
-- `core-kernel/runtime/design_contract.md`
 
 ## Steps
 

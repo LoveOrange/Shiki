@@ -2,14 +2,6 @@
 
 > Role: Coder. Generate interfaces and DTO skeletons from current L2 AS-IS specs only.
 
-## Load
-
-- `features/{feature}/_plan.md`
-- `features/{feature}/index.md`
-- `features/{feature}/modules/{module}/designs/model.md`
-- `features/{feature}/modules/{module}/designs/component.md`
-- existing source and same-layer examples
-- tech contracts: naming and layering
 
 ## Steps
 

@@ -1,157 +1,63 @@
 #!/usr/bin/env python3
-"""
-Lightweight Shiki workflow simulation.
-
-This script does not call an LLM or generate code. It checks that the repository
-contains the expected workflow, task-contract, template, and tech-contract
-surfaces for a minimal end-to-end run.
-"""
+"""Lightweight structural simulation for the Shiki v4 public workflow."""
 
 import sys
 from pathlib import Path
 
-SHIKI_ROOT = Path(__file__).resolve().parents[2]
 
+ROOT = Path(__file__).resolve().parents[2]
 errors: list[str] = []
-warnings: list[str] = []
 passed: list[str] = []
 
 
-def check(condition: bool, message: str, warn_only: bool = False) -> None:
-    if condition:
-        passed.append(f"PASS {message}")
-    elif warn_only:
-        warnings.append(f"WARN {message}")
-    else:
-        errors.append(f"FAIL {message}")
+def check(condition: bool, message: str) -> None:
+    (passed if condition else errors).append(("PASS " if condition else "FAIL ") + message)
 
 
-def load_yaml_lite(path: Path) -> dict[str, str]:
-    """Minimal YAML loader that only extracts top-level key/value pairs."""
-    data: dict[str, str] = {}
-    for line in path.read_text(encoding="utf-8").splitlines():
-        line = line.strip()
-        if ":" in line and not line.startswith("#") and not line.startswith("-"):
-            key, _, val = line.partition(":")
-            data[key.strip()] = val.strip()
-    return data
+def test_contract_workflows() -> None:
+    contract_root = ROOT / "core-kernel" / "runtime" / "task_contracts"
+    for path in sorted(contract_root.rglob("*.yaml")):
+        text = path.read_text(encoding="utf-8")
+        relative = path.relative_to(contract_root).as_posix()
+        if "kind: alias" in text:
+            check("canonical:" in text, f"Alias has Canonical reference: {relative}")
+            check("workflow_ref:" not in text, f"Alias stays minimal: {relative}")
+            continue
+        refs = [line.split(":", 1)[1].strip() for line in text.splitlines() if line.startswith("workflow_ref:")]
+        check(len(refs) == 1, f"Canonical has one workflow_ref: {relative}")
+        if refs:
+            check((ROOT / refs[0]).is_file(), f"workflow_ref resolves: {relative}")
 
 
-def test_happy_path() -> None:
-    print("\nScenario 1: full feature path")
-    template_dir = SHIKI_ROOT / "core-kernel" / "templates" / "feature"
-    for name in ["_plan.md", "design_brief.md", "code_contract.md", "index.md"]:
-        check((template_dir / name).exists(), f"feature template exists: {name}")
-
-    cheatsheet = SHIKI_ROOT / "docs" / "CHEATSHEET.md"
-    check(cheatsheet.exists(), "docs/CHEATSHEET.md exists")
-    if cheatsheet.exists():
-        content = cheatsheet.read_text(encoding="utf-8")
-        for heading in [
-            "## 1. scan",
-            "## 2. new feature",
-            "## 3. status",
-            "## 4. next",
-            "## 4a. apply",
-            "## 4b. batch",
-            "## 5. review",
-            "## 6. modify",
-            "## 7. doctor",
-            "## 8. sync",
-        ]:
-            check(heading in content, f"docs/CHEATSHEET.md contains {heading}")
-
-    expected = {
-        "design": [
-            "design_init",
-            "model",
-            "persistence",
-            "acl",
-            "component",
-            "entrance_spec",
-            "flow",
-            "code_contract",
-        ],
-        "code": ["entity", "interface_skeletons", "feature_logic", "infrastructure", "adapter"],
-        "merge": ["feature_merge"],
-        "sync": ["plan", "apply_leaf"],
-        "doctor": ["plan", "apply_item"],
-    }
-    for phase, names in expected.items():
-        for name in names:
-            workflow = SHIKI_ROOT / "core-kernel" / "workflows" / phase / f"{name}.md"
-            contract = SHIKI_ROOT / "core-kernel" / "runtime" / "task_contracts" / phase / f"{name}.yaml"
-            check(workflow.exists(), f"workflow exists: {phase}/{name}")
-            check(contract.exists(), f"task contract exists: {phase}/{name}")
-            if contract.exists():
-                data = load_yaml_lite(contract)
-                ref = data.get("workflow_ref", "")
-                check(bool(ref) and (SHIKI_ROOT / ref).exists(), f"workflow_ref resolves: {phase}/{name}")
-                check("kind" not in data, f"task contract has no legacy kind field: {phase}/{name}")
-                check("output" in contract.read_text(encoding="utf-8"), f"task contract has output field: {phase}/{name}")
-            if workflow.exists():
-                text = workflow.read_text(encoding="utf-8")
-                for heading in ["## Load", "## Steps", "## Verification"]:
-                    check(heading in text, f"{phase}/{name} has {heading}", warn_only=True)
-    check((SHIKI_ROOT / "core-kernel" / "workflows" / "runner" / "next.md").exists(), "runner/next workflow exists")
-    check((SHIKI_ROOT / "core-kernel" / "workflows" / "runner" / "batch.md").exists(), "runner/batch workflow exists")
-    check((SHIKI_ROOT / "core-kernel" / "runtime" / "execution_session.md").exists(), "runtime/execution_session.md exists")
+def test_dual_tracks() -> None:
+    runtime = (ROOT / "core-kernel" / "runtime" / "execution_session.md").read_text(encoding="utf-8")
+    check("CLI Automatic Track" in runtime, "CLI automatic track is documented")
+    check("Prompt Manual Track" in runtime, "Prompt manual track is documented")
+    check((ROOT / "providers" / "codex.py").is_file(), "Codex CLI Provider exists")
+    check((ROOT / "providers" / "claude.py").is_file(), "Claude CLI Provider exists")
+    check(not (ROOT / "core-kernel" / "workflows" / "runner" / "batch.md").exists(), "legacy batch workflow is absent")
+    check(not (ROOT / "core-kernel" / "_lib" / "workflow_executor.py").exists(), "legacy workflow executor is absent")
 
 
-def test_tech_stack_contracts() -> None:
-    print("\nScenario 2: tech stack contracts")
-    config = SHIKI_ROOT / "shiki.config.yaml"
-    check(config.exists(), "shiki.config.yaml exists")
-    if config.exists():
-        check("java/ddd-spring" in config.read_text(encoding="utf-8"), "default stack is hierarchical")
-
-    pack_dir = SHIKI_ROOT / "tech-stacks" / "tech-contracts" / "java" / "ddd-spring"
-    for name in ["naming.md", "layering.md", "exception.md", "persistence.md", "acl.md"]:
-        check((pack_dir / name).exists(), f"java/ddd-spring slice exists: {name}")
-
-
-def test_public_surface() -> None:
-    print("\nScenario 3: public repository surface")
-    for removed in ["legacy", "shiki_context", ".claude"]:
-        check(not (SHIKI_ROOT / removed).exists(), f"{removed}/ is not part of the public source surface")
-    check((SHIKI_ROOT / "tests" / "fixtures" / "java-ddd-spring-sample").exists(), "generic Java fixture exists")
-
-
-def test_context_budget() -> None:
-    print("\nScenario 4: context budget")
-    load_files = [
-        "core-kernel/workflows/design/model.md",
-        "tech-stacks/tech-contracts/java/ddd-spring/naming.md",
-        "core-kernel/runtime/task_contracts/design/model.yaml",
-        "core-kernel/runtime/context_loading.md",
-        "core-kernel/runtime/execution_session.md",
-    ]
-    total = 4500
-    for relative in load_files:
-        path = SHIKI_ROOT / relative
-        if path.exists():
-            total += path.stat().st_size
-    check(total < 24576, f"estimated model-design session context is below 24 KB ({total} bytes)")
-
-
-def print_report() -> None:
-    print("\nSIMULATION RESULTS")
-    print(f"Passed: {len(passed)}")
-    print(f"Warnings: {len(warnings)}")
-    print(f"Errors: {len(errors)}")
-    for item in warnings:
-        print(item)
-    for item in errors:
-        print(item)
+def test_templates_and_tools() -> None:
+    plan = (ROOT / "core-kernel" / "templates" / "feature" / "_plan.md").read_text(encoding="utf-8")
+    check("| id | phase | target | depends_on | contract | output_files |" in plan, "feature Plan uses v4 ledger columns")
+    active = (ROOT / "core-kernel" / "templates" / "workspace" / "active_task.md").read_text(encoding="utf-8")
+    check("`next`: auto" in active, "active task supports automatic routing")
+    for module in ["config.py", "context.py", "task_contracts.py", "task_tools.py", "kernel.py"]:
+        check((ROOT / "core-kernel" / "_lib" / module).is_file(), f"Kernel helper exists: {module}")
 
 
 def main() -> int:
-    print("Shiki workflow simulation")
-    test_happy_path()
-    test_tech_stack_contracts()
-    test_public_surface()
-    test_context_budget()
-    print_report()
+    print("Shiki v4 workflow simulation")
+    test_contract_workflows()
+    test_dual_tracks()
+    test_templates_and_tools()
+    for item in passed:
+        print(item)
+    for item in errors:
+        print(item)
+    print(f"Passed: {len(passed)}; Errors: {len(errors)}")
     return 1 if errors else 0
 
 

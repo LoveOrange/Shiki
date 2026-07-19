@@ -2,12 +2,6 @@
 
 > Role: Architect. Produce exposed entrance contract only.
 
-## Load
-
-- `features/{feature}/design_brief.md` entrance section
-- `features/{feature}/modules/{module}/designs/model.md`
-- baseline `modules/{module}/entrances/[entrance].md` when present and read-only
-- `core-kernel/runtime/design_contract.md`
 
 ## Steps
 

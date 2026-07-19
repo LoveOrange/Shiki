@@ -1,42 +1,29 @@
 # Task Contracts
 
-`core-kernel/runtime/task_contracts/` stores machine-readable atomic task contracts in YAML.
+Task Contracts are machine-readable atomic task signatures stored as YAML.
 
-They are the routing truth and describe:
+A Canonical Contract contains only:
 
-- task goal
-- inputs and references
-- target output
-- checks
-- test specs and check rules
-- retry policy
-- done condition
-- review and evidence expectations through the execution session
+- `kind`, `id`, `stage`, and `goal`;
+- `inputs[]`, where every entry has exactly `path` and `required`;
+- optional fixed `output.path`;
+- `workflow_ref`.
 
-`core-kernel/workflows/*.md` remain human-readable prompt views; YAML task contracts carry the executable routing truth.
+Contracts do not contain references, checks, done conditions, tech-stack rules, file modes, Review state, or retry policy. Workflow owns execution, self-checks, and project validation. Orchestrator owns dispatch boundaries and Review.
 
-## Contract Routing
+Alias Contracts contain only `kind: alias`, `id`, `canonical`, and optional static `bindings`. Aliases must resolve directly to one Canonical Contract; chains are rejected. New Plans write Canonical relative refs. Aliases exist only for compatibility.
 
-The model does not need a separate task-kind registry. Runtime reads the current plan item `contract` column and loads that YAML.
+Required-input routing uses Canonical `output.path` ownership. A unique ready producer can be routed automatically; ambiguous ownership returns MANUAL_DECISION; no owner returns BLOCKED.
 
-Maintenance rules:
+Atomic maintenance contracts:
 
-- User-facing commands should not expose a private task-kind list.
-- YAML contracts no longer declare a separate task-kind field; the contract path and `id` are the route.
-- Plan rows for multi-step commands use only `contract` to distinguish sync, doctor, and similar actions.
-
-These contracts must also stay atomic:
-
-- `test/api_case_spec.yaml` updates API black-box integration cases without reading source code.
-- `test/unit_case_spec.yaml` updates unit cases from target source and direct dependencies.
-- `test/unit_test_code.yaml` and `test/api_integration_test_code.yaml` write test code from recorded cases.
-- `test/run_and_route.yaml` runs the relevant verifier and classifies failures before routing fixes.
-- `sync/plan.yaml` creates only a bounded Code -> Spec sync plan and does not edit specs.
-- `sync/apply_leaf.yaml` syncs exactly one leaf spec.
-- `doctor/plan.yaml` diagnoses read-only by default and creates a repair plan only after confirmation.
-- `doctor/apply_item.yaml` executes exactly one deterministic repair item.
-
-`/shiki-next` may advance several ready contract-backed items inside one
-adaptive execution session, but the session must still load each task contract
-separately and record each item's status, output_files, evidence, and
-review_result independently when those plan columns exist.
+- `init/plan.yaml` creates the initial Init Plan.
+- `init/inspect_controller.yaml` expands one Controller/API group.
+- `init/entrance_spec.yaml` writes one entrance aggregate.
+- `init/sync_plan.yaml` adds bounded project sync rows.
+- `init/sync_project_artifact.yaml` writes one project artifact.
+- `sync/plan.yaml` creates a bounded Code-to-Spec Plan.
+- `sync/apply_leaf.yaml` updates one leaf spec.
+- `doctor/plan.yaml` creates an authorized repair Plan.
+- `doctor/apply_item.yaml` performs one deterministic repair.
+- `test/run.yaml` runs verification and reports; the Orchestrator chooses the next Task.
